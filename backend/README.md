@@ -20,3 +20,15 @@ php artisan migrate
 Endpoints:
 - Laravel: http://localhost:8080
 - pgAdmin: http://localhost:5050
+
+## Connect to the database (from host)
+Port 5432 is exposed, so any Postgres client (psql, DBeaver, TablePlus...) can connect directly:
+- Host: `localhost`
+- Port: `5432`
+- User: `root`
+- Password: `root`
+- Database: `app`
+
+```bash
+psql -h localhost -U root -d app
+```
