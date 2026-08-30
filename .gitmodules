@@ -4,3 +4,6 @@
 [submodule "backend"]
 	path = backend
 	url = https://github.com/nahel-argama/cultiva-backend.git
+[submodule "product-source"]
+	path = product-source
+	url = https://github.com/nahel-argama/product-source.git
