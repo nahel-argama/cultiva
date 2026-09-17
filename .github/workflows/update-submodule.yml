@@ -18,6 +18,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: true
+          token: ${{ secrets.CULTIVA_PARENT_DISPATCH_TOKEN }}
 
       - name: Validate submodule
         env:
