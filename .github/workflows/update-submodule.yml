@@ -17,6 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: main
           submodules: true
           token: ${{ secrets.CULTIVA_PARENT_DISPATCH_TOKEN }}
 
@@ -34,6 +35,7 @@ jobs:
           PATHNAME: ${{ github.event.client_payload.path }}
           SHA: ${{ github.event.client_payload.sha }}
         run: |
+          git pull --rebase
           git -C "$PATHNAME" fetch origin main
           git -C "$PATHNAME" cat-file -e "$SHA^{commit}"
           git -C "$PATHNAME" checkout --detach "$SHA"
