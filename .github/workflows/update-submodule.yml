@@ -1,0 +1,43 @@
+name: Update submodule reference
+
+on:
+  repository_dispatch:
+    types: [submodule-updated]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: submodule-reference
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Validate submodule
+        env:
+          PATHNAME: ${{ github.event.client_payload.path }}
+          SHA: ${{ github.event.client_payload.sha }}
+        run: |
+          case "$PATHNAME" in backend|frontend|product-source) ;; *) exit 1 ;; esac
+          case "$SHA" in *[!0-9a-f]*|'') exit 1 ;; esac
+          test "${#SHA}" -eq 40
+
+      - name: Update reference
+        env:
+          PATHNAME: ${{ github.event.client_payload.path }}
+          SHA: ${{ github.event.client_payload.sha }}
+        run: |
+          git -C "$PATHNAME" fetch origin "$SHA"
+          git -C "$PATHNAME" checkout --detach "$SHA"
+          git add "$PATHNAME"
+          git diff --cached --quiet && exit 0
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git commit -m "chore: update $PATHNAME submodule"
+          git push
