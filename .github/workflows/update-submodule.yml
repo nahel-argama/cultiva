@@ -33,7 +33,8 @@ jobs:
           PATHNAME: ${{ github.event.client_payload.path }}
           SHA: ${{ github.event.client_payload.sha }}
         run: |
-          git -C "$PATHNAME" fetch origin "$SHA"
+          git -C "$PATHNAME" fetch origin main
+          git -C "$PATHNAME" cat-file -e "$SHA^{commit}"
           git -C "$PATHNAME" checkout --detach "$SHA"
           git add "$PATHNAME"
           git diff --cached --quiet && exit 0
