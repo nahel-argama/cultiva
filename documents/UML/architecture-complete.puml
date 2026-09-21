@@ -1,0 +1,358 @@
+@startuml cultiva_complete_architecture
+top to bottom direction
+
+skinparam monochrome false
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam classFontSize 11
+skinparam classFontName "Helvetica, Arial, sans-serif"
+skinparam packageFontSize 12
+skinparam packageFontStyle bold
+skinparam defaultTextAlignment left
+skinparam arrowColor #334155
+skinparam classBorderColor #475569
+skinparam packageBorderColor #64748B
+skinparam linetype ortho
+
+hide empty members
+hide circle
+
+package "Integrations" {
+    interface GeoProviderContract <<interface>> {
+        + searchByCep(cep: Cep): GeoAddressDTO
+    }
+
+    class BrasilApiGeoProvider implements GeoProviderContract {
+        + searchByCep(cep: Cep): GeoAddressDTO
+    }
+
+    abstract class GeoProviderFactoryMethod <<Factory Method>> {
+        + searchByCep(cep: Cep): GeoAddressDTO
+        # {abstract} createProvider(): GeoProviderContract
+    }
+
+    class BrasilApiGeoProviderFactoryMethod extends GeoProviderFactoryMethod {
+        # createProvider(): GeoProviderContract
+    }
+
+    class ResolveGeoProviderAction <<Factory Action>> {
+        + execute(): GeoProviderFactoryMethod
+    }
+
+    class SearchCepAction <<Action>> {
+        + execute(cep: Cep): GeoAddressDTO
+    }
+
+    class ProductSourceClient <<HTTP Client>> {
+        + getProduct(sourceProductId: string): Response
+    }
+
+    class GetProductAction <<Action>> {
+        + execute(sourceProductId: string): ProductDTO
+    }
+}
+
+package "Auth & Registration" {
+    class SignUpFacade <<Facade>> {
+        + register(dto: SignUpDTO): ProfileResultDTO
+    }
+
+    class SignUpAction <<Action>> {
+        + execute(dto: SignUpDTO): ProfileResultDTO
+    }
+
+    class LoginAction <<Action>> {
+        + execute(dto: LoginDTO): AuthTokensDTO
+    }
+
+    class SignupStrategyFactory <<Factory>> {
+        + make(type: ProfileType): SignupStrategyInterface
+    }
+
+    interface SignupStrategyInterface <<Strategy>> {
+        + registerProfile(user: User, company: Company, dto: SignUpDTO): void
+    }
+
+    class ProducerSignupStrategy implements SignupStrategyInterface {
+        + registerProfile(user: User, company: Company, dto: SignUpDTO): void
+    }
+
+    class RetailerSignupStrategy implements SignupStrategyInterface {
+        + registerProfile(user: User, company: Company, dto: SignUpDTO): void
+    }
+
+    class DeliverySignupStrategy implements SignupStrategyInterface {
+        + registerProfile(user: User, company: Company, dto: SignUpDTO): void
+    }
+
+    interface SignupRuleBuilderInterface <<Builder>> {
+        + addUserRules(): static
+        + addCompanyRules(): static
+        + addAddressRules(prefix: string): static
+        + addProducerRules(): static
+        + addRetailerRules(): static
+        + addDeliveryRules(): static
+        + getRules(): array
+    }
+
+    class SignupRuleBuilder implements SignupRuleBuilderInterface {
+        + getRules(): array
+    }
+
+    class ProducerSignupDirector <<Director>> {
+        + build(): array
+    }
+
+    class RetailerSignupDirector <<Director>> {
+        + build(): array
+    }
+
+    class DeliverySignupDirector <<Director>> {
+        + build(): array
+    }
+}
+
+package "Identity & Profiles" {
+    enum ProfileType <<enum>>
+    enum ActivitySegment <<enum>>
+    enum BusinessType <<enum>>
+
+    class User <<Entity>> {
+        - id: int
+        - name: string
+        - email: string
+        - profile_type: ProfileType
+        - is_active: bool
+        - last_login: ?DateTime
+        - email_verified_at: ?DateTime
+        --
+        + isRetailer(): bool
+        + isProducer(): bool
+        + isDelivery(): bool
+    }
+
+    class Company <<Entity>> {
+        - id: int
+        - user_id: int
+        - document_number: string
+        - trade_name: string
+        - legal_name: ?string
+        - phone: string
+    }
+
+    class Address <<Entity>> {
+        - id: int
+        - addressable_type: string
+        - addressable_id: int
+        - zip: string
+        - street: string
+        - number: string
+        - complement: ?string
+        - reference_point: ?string
+        - neighborhood: string
+        - city: string
+        - state: string
+        - coordinate: ?Point
+    }
+
+    class Cep <<Value Object>> {
+        - value: string
+        --
+        + __construct(value: string)
+        + value(): string
+        + format(): string
+    }
+
+    class Producer <<Entity>> {
+        - id: int
+        - company_id: int
+        - activity_segment: ActivitySegment
+    }
+
+    class Retailer <<Entity>> {
+        - id: int
+        - company_id: int
+        - business_type: BusinessType
+    }
+
+    class CreateUserAction <<Action>> {
+        + execute(dto: UserRegisterDTO): User
+    }
+
+    class CreateCompanyAction <<Action>> {
+        + execute(userId: int, dto: CompanyRegisterDTO, geo: GeoAddressDTO): Company
+    }
+
+    class CreateAddressAction <<Action>> {
+        + execute(addressable: Model, dto: AddressRegisterDTO, geo: GeoAddressDTO): Address
+    }
+
+    class CreateProducerAction <<Action>> {
+        + execute(company: Company, dto: ProducerRegisterDTO): Producer
+    }
+
+    class CreateRetailerAction <<Action>> {
+        + execute(company: Company, dto: RetailerRegisterDTO): Retailer
+    }
+}
+
+package "Logistics & Fleet" {
+    enum CnhCategory <<enum>>
+    enum CargoType <<enum>>
+
+    class Delivery <<Entity>> {
+        - id: int
+        - company_id: int
+        - cnh_number: string
+        - cnh_category: CnhCategory
+    }
+
+    class Vehicle <<Entity>> {
+        - id: int
+        - delivery_id: int
+        - plate: string
+        - cargo_type: CargoType
+    }
+
+    class CreateDeliveryAction <<Action>> {
+        + execute(company: Company, dto: DeliveryRegisterDTO): Delivery
+    }
+
+    class CreateVehicleAction <<Action>> {
+        + execute(delivery: Delivery, dto: VehicleRegisterDTO): Vehicle
+    }
+}
+
+package "Catalog & Marketplace" {
+    enum OfferStatus <<enum>>
+
+    class Category <<Entity>> {
+        - id: int
+        - name: string
+    }
+
+    class Offer <<Entity>> {
+        - id: int
+        - producer_id: int
+        - category_id: int
+        - source_product_id: string
+        - product_name: string
+        - unit_price: decimal
+        - total_quantity: int
+        - reserved_quantity: int
+        - status: OfferStatus
+        - harvest_date: DateTime
+        - expiration_date: DateTime
+        --
+        + availableQuantity(): int
+        + isVisible(): bool
+    }
+
+    class CreateOfferAction <<Action>> {
+        + execute(producer: Producer, data: CreateOfferDTO): Offer
+    }
+
+    class UpdateOfferAction <<Action>> {
+        + execute(producer: Producer, offer: Offer, data: UpdateOfferDTO): Offer
+    }
+}
+
+package "Commerce & Wishlist" {
+    class Purchase <<Entity>> {
+        - id: int
+        - offer_id: int
+        - retailer_id: int
+        - producer_id: int
+        - source_product_id: string
+        - product_name: string
+        - quantity: int
+        - unit_price: decimal
+        - total_price: decimal
+    }
+
+    class WishlistItem <<Entity>> {
+        - id: int
+        - retailer_id: int
+        - source_product_id: string
+        - product_name: string
+        - state: string
+    }
+
+    class CreatePurchaseAction <<Action>> {
+        + execute(retailer: Retailer, offerId: int, data: CreatePurchaseDTO): Purchase
+    }
+
+    class AddWishlistItemAction <<Action>> {
+        + execute(retailer: Retailer, dto: AddWishlistItemDTO): WishlistItem
+    }
+
+    class GetWishlistAnalyticsAction <<Action>> {
+        + execute(user: User, dto: GetWishlistAnalyticsDTO): WishlistAnalyticsDTO
+    }
+}
+
+' Integration & Factory Method wirings
+BrasilApiGeoProviderFactoryMethod ..> BrasilApiGeoProvider : creates
+ResolveGeoProviderAction ..> GeoProviderFactoryMethod : resolves
+SearchCepAction ..> GeoProviderFactoryMethod : calls searchByCep()
+GetProductAction o-- ProductSourceClient : calls
+
+' Registration & Facade wirings
+SignUpAction ..> SignUpFacade : delegates
+SignUpFacade ..> SearchCepAction : resolves geo via
+SignUpFacade ..> CreateUserAction : delegates
+SignUpFacade ..> CreateCompanyAction : delegates
+SignUpFacade ..> SignupStrategyFactory : uses
+CreateCompanyAction ..> CreateAddressAction : delegates
+
+SignupStrategyFactory ..> SignupStrategyInterface : makes
+ProducerSignupStrategy ..> CreateProducerAction : delegates
+RetailerSignupStrategy ..> CreateRetailerAction : delegates
+DeliverySignupStrategy ..> CreateDeliveryAction : delegates
+DeliverySignupStrategy ..> CreateVehicleAction : delegates
+
+ProducerSignupDirector o-- SignupRuleBuilderInterface : directs
+RetailerSignupDirector o-- SignupRuleBuilderInterface : directs
+DeliverySignupDirector o-- SignupRuleBuilderInterface : directs
+
+' Domain Model Associations & Cardinalities
+User "1" *-- "1" Company : owns
+Company "1" *-- "1" Address : located at
+Address ..> Cep : validates / formats
+User ..> ProfileType : classified by
+
+Company "1" *-- "0..1" Producer : profile
+Company "1" *-- "0..1" Retailer : profile
+Company "1" *-- "0..1" Delivery : profile
+
+Producer ..> ActivitySegment
+Retailer ..> BusinessType
+
+Delivery ..> CnhCategory
+Delivery "1" *-- "1..*" Vehicle : operates
+Vehicle ..> CargoType
+
+Category "1" o-- "0..*" Offer : classifies
+Producer "1" o-- "0..*" Offer : publishes
+Offer ..> OfferStatus
+
+Offer "1" <-- "0..*" Purchase : fulfills
+Retailer "1" <-- "0..*" Purchase : places
+Producer "1" <-- "0..*" Purchase : fulfills for
+
+Retailer "1" *-- "0..*" WishlistItem : tracks
+
+' Domain Action - Model & Cross-Service Interactions
+CreateOfferAction ..> GetProductAction : fetches product via
+CreateOfferAction ..> Offer : creates
+CreateOfferAction ..> Producer : validates
+CreateOfferAction ..> Category : validates
+
+CreatePurchaseAction ..> Offer : locks & reserves
+CreatePurchaseAction ..> Purchase : creates
+
+AddWishlistItemAction ..> GetProductAction : verifies product via
+AddWishlistItemAction ..> WishlistItem : creates
+GetWishlistAnalyticsAction ..> WishlistItem : aggregates
+
+@enduml
