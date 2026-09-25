@@ -7,3 +7,6 @@
 [submodule "product-source"]
 	path = product-source
 	url = https://github.com/nahel-argama/product-source.git
+[submodule "moranguinho"]
+	path = moranguinho
+	url = https://github.com/nahel-argama/moranguinho.git
