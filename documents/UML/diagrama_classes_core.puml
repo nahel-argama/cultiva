@@ -1,0 +1,199 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+hide circle
+top to bottom direction
+
+abstract class Company {
+  - id: int
+  - documentNumber: String
+  - tradeName: String
+  - legalName: String
+  - phone: String
+  + updateContactInfo(phone: String): void
+  + getFormattedDocument(): String
+  + isProfileComplete(): boolean
+}
+
+class User {
+  - id: int
+  - name: String
+  - email: String
+  - passwordHash: String
+  - isActive: boolean
+  - lastLogin: DateTime
+  + activate(): void
+  + deactivate(): void
+  + updatePassword(newPasswordHash: String): void
+  + verifyEmail(): void
+}
+
+class Producer {
+  - activitySegment: ActivitySegment
+  + updateActivitySegment(segment: ActivitySegment): void
+  + createOffer(productName: String, price: decimal, quantity: int): Offer
+}
+
+class Retailer {
+  - businessType: BusinessType
+  + updateBusinessType(type: BusinessType): void
+  + placePurchase(offer: Offer, quantity: int): Purchase
+  + addItemToWishlist(sourceProductId: String, productName: String, state: String): WishlistItem
+}
+
+class Delivery {
+  - cnhNumber: String
+  - cnhCategory: CnhCategory
+  + updateCnh(number: String, category: CnhCategory): void
+  + acceptTrip(trip: DeliveryTrip): void
+}
+
+class Address {
+  - id: int
+  - zip: String
+  - street: String
+  - number: String
+  - complement: String
+  - neighborhood: String
+  - city: String
+  - state: String
+  - coordinate: Point
+  + getFormattedAddress(): String
+  + hasCoordinate(): boolean
+}
+
+class WishlistItem {
+  - id: int
+  - sourceProductId: String
+  - productName: String
+  - state: String
+  + matchesOffer(offer: Offer): boolean
+  + updateState(newState: String): void
+}
+
+class Category {
+  - id: int
+  - name: String
+  + updateName(newName: String): void
+  + countOffers(): int
+}
+
+class Offer {
+  - id: int
+  - sourceProductId: String
+  - productName: String
+  - unitPrice: decimal
+  - totalQuantity: int
+  - reservedQuantity: int
+  - status: OfferStatus
+  - harvestDate: Date
+  - lifespanDays: int
+  + reserve(quantity: int): boolean
+  + releaseReservation(quantity: int): void
+  + getAvailableQuantity(): int
+  + isAvailable(): boolean
+  + activate(): void
+  + deactivate(): void
+}
+
+class Purchase {
+  - id: int
+  - sourceProductId: String
+  - productName: String
+  - quantity: int
+  - unitPrice: decimal
+  - totalPrice: decimal
+  - createdAt: DateTime
+  + calculateTotal(): decimal
+  + cancel(): void
+  + generateDeliveryOrder(): DeliveryOrder
+}
+
+class CargoType {
+  - id: int
+  - code: CargoTypeCode
+  - description: String
+  + isCompatibleWith(cargoType: CargoType): boolean
+  + getCodeDescription(): String
+}
+
+class Vehicle {
+  - id: int
+  - plate: String
+  - isActive: boolean
+  + updatePlate(newPlate: String): void
+  + assignCargoType(cargoType: CargoType): void
+  + isAvailable(): boolean
+}
+
+class DeliveryTrip {
+  - id: int
+  - status: DeliveryTripStatus
+  - startedAt: DateTime
+  - completedAt: DateTime
+  - cancelledAt: DateTime
+  + start(): void
+  + complete(): void
+  + cancel(reason: String): void
+  + addStop(stop: DeliveryTripStop): void
+}
+
+class DeliveryTripStop {
+  - id: int
+  - sequence: int
+  - stopType: DeliveryTripStopType
+  - status: DeliveryTripStopStatus
+  - arrivedAt: DateTime
+  - completedAt: DateTime
+  - notes: String
+  + arrive(): void
+  + complete(): void
+  + skip(reason: String): void
+}
+
+class DeliveryOrder {
+  - id: int
+  - quantity: int
+  - status: DeliveryOrderStatus
+  - pickedUpAt: DateTime
+  - deliveredAt: DateTime
+  - failedAt: DateTime
+  - cancelledAt: DateTime
+  + markAsPickedUp(): void
+  + markAsDelivered(): void
+  + markAsFailed(reason: String): void
+  + cancel(): void
+}
+
+' Relacionamentos Estruturais
+User "1" -- "1" Company : representa >
+Company "1" o-- "1" Address : localiza-se em >
+
+Company <|-- Producer
+Company <|-- Retailer
+Company <|-- Delivery
+
+Retailer "1" *-- "0..*" WishlistItem : gerencia >
+Retailer "1" -- "0..*" Purchase : realiza >
+
+Producer "1" -- "0..*" Offer : publica >
+Category "1" -- "0..*" Offer : classifica >
+Offer "1" -- "0..*" Purchase : atende >
+
+Purchase "1" -- "0..1" DeliveryOrder : gera >
+
+Delivery "1" o-- "1..*" Vehicle : opera >
+Vehicle "0..*" -- "1" CargoType : classificado por >
+
+Delivery "0..1" -- "0..*" DeliveryTrip : executa >
+DeliveryTrip "0..*" -- "0..1" Vehicle : utiliza >
+DeliveryTrip "0..*" -- "1" CargoType : exige >
+DeliveryTrip "1" *-- "1..*" DeliveryTripStop : contém >
+DeliveryTrip "1" -- "0..*" DeliveryOrder : consolida >
+
+DeliveryOrder "0..*" -- "1" Address : enderecoOrigem >
+DeliveryOrder "0..*" -- "1" Address : enderecoDestino >
+DeliveryTripStop "0..*" -- "1" Address : localiza-se em >
+
+@enduml
