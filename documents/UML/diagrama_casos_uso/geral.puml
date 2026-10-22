@@ -1,0 +1,81 @@
+@startuml
+left to right direction
+skinparam linetype ortho
+
+' Atores à esquerda
+actor "Pequeno Produtor" as Producer
+actor "Varejista" as Retailer
+actor "Administrador" as Admin
+
+rectangle "Plataforma Cultiva" {
+    usecase "Analisar Dados das Listas de Desejos" as UC_AnaliseDesejos
+    usecase "Visualizar Previsão de Demanda" as UC_PrevisaoDemanda
+    usecase "Gerenciar Estoque de Produtos" as UC_Estoque
+    usecase "Cadastro de Usuário" as UC_Cadastro
+    usecase "Autenticação de Usuário" as UC_Auth
+    usecase "Visualizar Histórico de Transações" as UC_Historico
+    usecase "Visualizar Detalhes da Transação" as UC_DetalhesHistorico
+    usecase "Explorar Ofertas" as UC_Explorar
+    usecase "Visualizar Preço Sugerido" as UC_PrecoSugerido
+    usecase "Adicionar Item ao Pedido" as UC_AdicionarItem
+    usecase "Criar Lista de Desejos" as UC_ListaDesejos
+    usecase "Realizar Compra" as UC_RealizarCompra
+    usecase "Auditar Transações e Registros" as UC_Auditoria
+    usecase "Processar Pagamento" as UC_ProcessarPagamento
+    usecase "Gerar Comprovante de Pagamento" as UC_Comprovante
+    usecase "Sugestão de Preço Dinâmico" as UC_PrecoDinamico
+
+    UC_AnaliseDesejos -[norank,hidden]-> UC_PrevisaoDemanda
+    UC_PrevisaoDemanda -[norank,hidden]-> UC_Estoque
+    UC_Estoque -[norank,hidden]-> UC_Cadastro
+    UC_Cadastro -[norank,hidden]-> UC_Auth
+    UC_Auth -[norank,hidden]-> UC_Historico
+    UC_Historico -[norank,hidden]-> UC_DetalhesHistorico
+    UC_DetalhesHistorico -[norank,hidden]-> UC_Explorar
+    UC_Explorar -[norank,hidden]-> UC_PrecoSugerido
+    UC_PrecoSugerido -[norank,hidden]-> UC_AdicionarItem
+    UC_AdicionarItem -[norank,hidden]-> UC_ListaDesejos
+    UC_ListaDesejos -[norank,hidden]-> UC_RealizarCompra
+    UC_RealizarCompra -[norank,hidden]-> UC_Auditoria
+    UC_Auditoria -[norank,hidden]-> UC_ProcessarPagamento
+    UC_ProcessarPagamento -[norank,hidden]-> UC_Comprovante
+    UC_Comprovante -[norank,hidden]-> UC_PrecoDinamico
+}
+
+' Sistemas à direita
+actor "Gateway de Pagamento" as Gateway <<system>>
+actor "Motor de Produtos" as MotorProdutos <<system>>
+
+' Associações Atores à Esquerda
+Producer -- UC_PrevisaoDemanda
+Producer -- UC_Estoque
+Producer -- UC_Cadastro
+Producer -- UC_Auth
+Producer -- UC_Historico
+
+Retailer -- UC_Cadastro
+Retailer -- UC_Auth
+Retailer -- UC_Historico
+Retailer -- UC_Explorar
+Retailer -- UC_AdicionarItem
+Retailer -- UC_ListaDesejos
+Retailer -- UC_RealizarCompra
+
+Admin -- UC_Auditoria
+
+' Associações Sistemas à Direita
+UC_ProcessarPagamento -- Gateway
+UC_PrecoDinamico -- MotorProdutos
+
+' Relacionamentos entre Casos de Uso
+UC_PrevisaoDemanda .[norank].> UC_AnaliseDesejos : <<include>>
+UC_DetalhesHistorico .[norank].> UC_Historico : <<extend>>
+UC_PrecoSugerido .[norank].> UC_Explorar : <<extend>>
+UC_PrecoSugerido .[norank].> UC_Estoque : <<extend>>
+UC_PrecoSugerido .[norank].> UC_PrecoDinamico : <<include>>
+UC_Explorar .[norank].> UC_AdicionarItem : <<include>>
+UC_RealizarCompra .[norank].> UC_AdicionarItem : <<include>>
+UC_RealizarCompra .[norank].> UC_ProcessarPagamento : <<include>>
+UC_Comprovante .[norank].> UC_ProcessarPagamento : <<extend>>
+
+@enduml
