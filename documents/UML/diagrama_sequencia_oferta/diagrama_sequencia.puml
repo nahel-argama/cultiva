@@ -1,0 +1,94 @@
+@startuml diagrama_sequencia
+autonumber
+skinparam shadowing false
+skinparam defaultFontName "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif
+skinparam defaultFontSize 12
+skinparam roundCorner 4
+skinparam responseMessageBelowArrow true
+
+skinparam sequence {
+    ArrowColor #222222
+    ActorBorderColor #222222
+    ActorBackgroundColor #FFFFFF
+    ParticipantBorderColor #222222
+    ParticipantBackgroundColor #FFFFFF
+    DatabaseBorderColor #222222
+    DatabaseBackgroundColor #FFFFFF
+    LifeLineBorderColor #222222
+    GroupBorderColor #444444
+    GroupHeaderFontColor #111111
+    DividerBorderColor #888888
+    DividerBackgroundColor #F4F4F5
+    DividerFontStyle bold
+}
+
+actor "Produtor" as Producer
+participant "OfferController" as OfferController
+participant "CreateOfferAction" as CreateOfferAction
+database "Banco de Dados" as Database
+participant "GetProductAction" as GetProductAction
+participant "Catálogo Externo\n(Product Source API)" as ProductSource
+
+== 1. Solicitação de Criação de Oferta ==
+
+Producer -> OfferController: POST /v1/offers
+activate OfferController #93C5FD
+
+OfferController -> CreateOfferAction: execute(producer, dto)
+activate CreateOfferAction #818CF8
+
+== 2. Validação da Categoria ==
+
+CreateOfferAction -> Database: Verifica existência da Categoria (whereKey)
+activate Database #FCD34D
+Database --> CreateOfferAction: existe
+deactivate Database
+
+alt Categoria não encontrada
+    CreateOfferAction --> OfferController: lança 422 (category_not_found)
+    OfferController --> Producer: 422 Unprocessable Entity
+else Categoria existente
+
+    == 3. Consulta ao Catálogo de Produtos ==
+
+    CreateOfferAction -> GetProductAction: execute(source_product_id)
+    activate GetProductAction #2DD4BF
+
+    GetProductAction -> ProductSource: GET /products/{id}
+    activate ProductSource #FB923C
+    ProductSource --> GetProductAction: resposta HTTP
+    deactivate ProductSource
+
+    alt Produto não encontrado (HTTP 404)
+        GetProductAction --> CreateOfferAction: lança 422 (product_not_found)
+        CreateOfferAction --> OfferController: propaga 422
+        OfferController --> Producer: 422 Unprocessable Entity
+    else Falha ou indisponibilidade do serviço (Timeout / HTTP 500)
+        GetProductAction --> CreateOfferAction: lança 503 (service_unavailable)
+        CreateOfferAction --> OfferController: propaga 503
+        OfferController --> Producer: 503 Service Unavailable
+    else Produto válido (HTTP 200)
+        GetProductAction --> CreateOfferAction: retorna ProductDTO (id, nome)
+        deactivate GetProductAction
+
+        == 4. Persistência da Oferta ==
+
+        CreateOfferAction -> Database: Cria Oferta vinculada ao Produtor\n(status: ACTIVE, reserved_quantity: 0)
+        activate Database #FCD34D
+        Database --> CreateOfferAction: oferta
+        deactivate Database
+
+        CreateOfferAction --> OfferController: retorna oferta
+        deactivate CreateOfferAction
+
+        OfferController -> Database: Carrega relacionamento (load('category'))
+        activate Database #FCD34D
+        Database --> OfferController: categoria carregada
+        deactivate Database
+
+        OfferController --> Producer: 201 Created (OfferResource)
+        deactivate OfferController
+    end
+end
+
+@enduml
