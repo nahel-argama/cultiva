@@ -142,8 +142,7 @@ package "Identity & Profiles" {
 
     class Address <<Entity>> {
         - id: int
-        - addressable_type: string
-        - addressable_id: int
+        - company_id: int
         - zip: string
         - street: string
         - number: string
@@ -184,7 +183,7 @@ package "Identity & Profiles" {
     }
 
     class CreateAddressAction <<Action>> {
-        + execute(addressable: Model, dto: AddressRegisterDTO, geo: GeoAddressDTO): Address
+        + execute(company: Company, dto: AddressRegisterDTO, geo: GeoAddressDTO): Address
     }
 
     class CreateProducerAction <<Action>> {
@@ -198,7 +197,12 @@ package "Identity & Profiles" {
 
 package "Logistics & Fleet" {
     enum CnhCategory <<enum>>
-    enum CargoType <<enum>>
+    enum "CargoType" as CargoTypeEnum <<enum>>
+
+    class CargoType <<Entity>> {
+        - id: int
+        - code: CargoType
+    }
 
     class Delivery <<Entity>> {
         - id: int
@@ -210,8 +214,9 @@ package "Logistics & Fleet" {
     class Vehicle <<Entity>> {
         - id: int
         - delivery_id: int
+        - cargo_type_id: int
         - plate: string
-        - cargo_type: CargoType
+        - capacity: float
     }
 
     class CreateDeliveryAction <<Action>> {
@@ -219,7 +224,7 @@ package "Logistics & Fleet" {
     }
 
     class CreateVehicleAction <<Action>> {
-        + execute(delivery: Delivery, dto: VehicleRegisterDTO): Vehicle
+        + execute(deliveryId: int, dto: VehicleRegisterDTO): Vehicle
     }
 }
 
@@ -241,8 +246,8 @@ package "Catalog & Marketplace" {
         - total_quantity: int
         - reserved_quantity: int
         - status: OfferStatus
-        - harvest_date: DateTime
-        - expiration_date: DateTime
+        - harvest_date: Date
+        - lifespan_days: int
         --
         + availableQuantity(): int
         + isVisible(): bool
@@ -278,6 +283,10 @@ package "Commerce & Wishlist" {
         - state: string
     }
 
+    class PurchaseCreated <<Event>> {
+        + purchase: Purchase
+    }
+
     class CreatePurchaseAction <<Action>> {
         + execute(retailer: Retailer, offerId: int, data: CreatePurchaseDTO): Purchase
     }
@@ -288,6 +297,97 @@ package "Commerce & Wishlist" {
 
     class GetWishlistAnalyticsAction <<Action>> {
         + execute(user: User, dto: GetWishlistAnalyticsDTO): WishlistAnalyticsDTO
+    }
+}
+
+package "Delivery & Fulfillment" {
+    enum DeliveryTripStatus <<enum>>
+    enum DeliveryTripStopStatus <<enum>>
+    enum DeliveryTripStopType <<enum>>
+    enum DeliveryOrderStatus <<enum>>
+
+    class DeliveryTrip <<Entity>> {
+        - id: int
+        - delivery_id: ?int
+        - vehicle_id: ?int
+        - cargo_type_id: int
+        - status: DeliveryTripStatus
+        - started_at: ?DateTime
+        - completed_at: ?DateTime
+        - cancelled_at: ?DateTime
+    }
+
+    class DeliveryTripStop <<Entity>> {
+        - id: int
+        - trip_id: int
+        - delivery_address_id: int
+        - sequence: int
+        - stop_type: DeliveryTripStopType
+        - status: DeliveryTripStopStatus
+        - arrived_at: ?DateTime
+        - completed_at: ?DateTime
+        - notes: ?string
+    }
+
+    class DeliveryOrder <<Entity>> {
+        - id: int
+        - purchase_id: int
+        - trip_id: ?int
+        - pickup_stop_id: ?int
+        - dropoff_stop_id: ?int
+        - pickup_address_id: int
+        - dropoff_address_id: int
+        - quantity: int
+        - status: DeliveryOrderStatus
+        - picked_up_at: ?DateTime
+        - delivered_at: ?DateTime
+        - failed_at: ?DateTime
+        - cancelled_at: ?DateTime
+    }
+
+    class DeliveryAddress <<Entity>> {
+        - id: int
+        - zip: string
+        - street: string
+        - number: string
+        - complement: ?string
+        - reference_point: ?string
+        - neighborhood: string
+        - city: string
+        - state: string
+        - coordinate: ?Point
+    }
+
+    class CreateDeliveryOrderListener <<Listener>> {
+        + handle(event: PurchaseCreated): void
+    }
+
+    class CreateDeliveryOrderAction <<Action>> {
+        + execute(purchase: Purchase): DeliveryOrder
+    }
+
+    class ListAvailableTripsAction <<Action>> {
+        + execute(delivery: Delivery, page: int = 1, perPage: int = 15): LengthAwarePaginator
+    }
+
+    class ListFinishedTripsAction <<Action>> {
+        + execute(delivery: Delivery, page: int = 1, perPage: int = 15): LengthAwarePaginator
+    }
+
+    class GetCurrentTripAction <<Action>> {
+        + execute(delivery: Delivery): ?DeliveryTrip
+    }
+
+    class AssignTripAction <<Action>> {
+        + execute(delivery: Delivery, tripId: int): DeliveryTrip
+    }
+
+    class CancelTripAssignmentAction <<Action>> {
+        + execute(delivery: Delivery, tripId: int): DeliveryTrip
+    }
+
+    class ConfirmTripStopAction <<Action>> {
+        + execute(delivery: Delivery, stopId: int): DeliveryTripStop
     }
 }
 
@@ -316,21 +416,22 @@ RetailerSignupDirector o-- SignupRuleBuilderInterface : directs
 DeliverySignupDirector o-- SignupRuleBuilderInterface : directs
 
 ' Domain Model Associations & Cardinalities
-User "1" *-- "1" Company : owns
+User "1" *--down- "1" Company : owns
 Company "1" *-- "1" Address : located at
 Address ..> Cep : validates / formats
 User ..> ProfileType : classified by
 
 Company "1" *-- "0..1" Producer : profile
 Company "1" *-- "0..1" Retailer : profile
-Company "1" *-- "0..1" Delivery : profile
+Company "1" *-- "0..1" Delivery
 
 Producer ..> ActivitySegment
 Retailer ..> BusinessType
 
 Delivery ..> CnhCategory
 Delivery "1" *-- "1..*" Vehicle : operates
-Vehicle ..> CargoType
+Vehicle "0..*" --> "1" CargoType : classified by
+CargoType ..> CargoTypeEnum : typed by
 
 Category "1" o-- "0..*" Offer : classifies
 Producer "1" o-- "0..*" Offer : publishes
@@ -342,6 +443,23 @@ Producer "1" <-- "0..*" Purchase : fulfills for
 
 Retailer "1" *-- "0..*" WishlistItem : tracks
 
+' Delivery & Fulfillment Associations & Enums
+DeliveryTrip ..> DeliveryTripStatus
+DeliveryTripStop ..> DeliveryTripStopStatus
+DeliveryTripStop ..> DeliveryTripStopType
+DeliveryOrder ..> DeliveryOrderStatus
+
+Purchase "1" *-- "0..1" DeliveryOrder : generates
+DeliveryTrip "1" *-- "1..*" DeliveryTripStop : contains
+DeliveryTrip "1" *-- "0..*" DeliveryOrder : consolidates
+DeliveryTrip "0..*" --> "0..1" Delivery : assigned to
+DeliveryTrip "0..*" --> "0..1" Vehicle : uses
+DeliveryTrip "0..*" --> "1" CargoType : requires
+
+DeliveryTripStop "0..*" --> "1" DeliveryAddress
+DeliveryTripStop "1" o-- "0..*" DeliveryOrder : fulfills
+DeliveryOrder "1" *-- "2" DeliveryAddress : addresses
+
 ' Domain Action - Model & Cross-Service Interactions
 CreateOfferAction ..> GetProductAction : fetches product via
 CreateOfferAction ..> Offer : creates
@@ -350,9 +468,30 @@ CreateOfferAction ..> Category : validates
 
 CreatePurchaseAction ..> Offer : locks & reserves
 CreatePurchaseAction ..> Purchase : creates
+CreatePurchaseAction ..> PurchaseCreated : dispatches
 
 AddWishlistItemAction ..> GetProductAction : verifies product via
 AddWishlistItemAction ..> WishlistItem : creates
 GetWishlistAnalyticsAction ..> WishlistItem : aggregates
+
+CreateVehicleAction ..> CargoType : resolves
+CreateVehicleAction ..> Vehicle : creates
+
+CreateDeliveryOrderListener ..> PurchaseCreated : handles
+CreateDeliveryOrderListener ..> CreateDeliveryOrderAction : delegates
+CreateDeliveryOrderAction ..> DeliveryOrder : creates
+
+AssignTripAction ..> DeliveryTrip : assigns
+AssignTripAction ..> Vehicle : validates
+
+CancelTripAssignmentAction ..> DeliveryTrip : resets
+
+ConfirmTripStopAction ..> DeliveryTripStop : completes
+ConfirmTripStopAction ..> DeliveryOrder : updates
+ConfirmTripStopAction ..> DeliveryTrip : advances
+
+GetCurrentTripAction ..> DeliveryTrip : fetches
+ListAvailableTripsAction ..> DeliveryTrip : queries
+ListFinishedTripsAction ..> DeliveryTrip : queries
 
 @enduml

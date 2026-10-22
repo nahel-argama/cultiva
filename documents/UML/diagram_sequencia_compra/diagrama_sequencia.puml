@@ -1,0 +1,77 @@
+@startuml diagrama_sequencia
+autonumber
+skinparam shadowing false
+skinparam defaultFontName "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif
+skinparam defaultFontSize 12
+skinparam roundCorner 4
+skinparam responseMessageBelowArrow true
+
+skinparam sequence {
+    ArrowColor #222222
+    ActorBorderColor #222222
+    ActorBackgroundColor #FFFFFF
+    ParticipantBorderColor #222222
+    ParticipantBackgroundColor #FFFFFF
+    DatabaseBorderColor #222222
+    DatabaseBackgroundColor #FFFFFF
+    LifeLineBorderColor #222222
+    GroupBorderColor #444444
+    GroupHeaderFontColor #111111
+    DividerBorderColor #888888
+    DividerBackgroundColor #F4F4F5
+    DividerFontStyle bold
+}
+
+actor "Varejista" as Retailer
+participant "PurchaseController" as PurchaseController
+participant "CreatePurchaseAction" as CreatePurchaseAction
+database "Banco de Dados" as Database
+participant "CreateDeliveryOrderListener" as CreateDeliveryOrderListener
+participant "CreateDeliveryOrderAction" as CreateDeliveryOrderAction
+
+== 1. Solicitação de Compra ==
+
+Retailer -> PurchaseController: POST /v1/offers/{offer}/purchase
+activate PurchaseController #93C5FD
+
+PurchaseController -> CreatePurchaseAction: execute(retailer, offer, dto)
+activate CreatePurchaseAction #818CF8
+
+CreatePurchaseAction -> Database: Bloqueia Oferta (lockForUpdate)
+activate Database #FCD34D
+Database --> CreatePurchaseAction: oferta
+deactivate Database
+
+alt Oferta inativa ou estoque insuficiente
+    CreatePurchaseAction --> PurchaseController: lança 409 (insufficient_stock)
+    PurchaseController --> Retailer: 409 Conflict
+else Estoque disponível
+    CreatePurchaseAction -> Database: Cria Compra e atualiza reserva da Oferta\n(define INACTIVE se esgotar estoque)
+    activate Database #FCD34D
+    Database --> CreatePurchaseAction: compra
+    deactivate Database
+
+    CreatePurchaseAction --> PurchaseController: retorna compra
+    PurchaseController --> Retailer: 201 Created (PurchaseResource)
+    deactivate PurchaseController
+
+    == 2. Ordem de Entrega (Evento Assíncrono) ==
+
+    CreatePurchaseAction ->> CreateDeliveryOrderListener: evento(PurchaseCreated)
+    deactivate CreatePurchaseAction
+    activate CreateDeliveryOrderListener #C084FC
+
+    CreateDeliveryOrderListener -> CreateDeliveryOrderAction: execute(purchase)
+    activate CreateDeliveryOrderAction #34D399
+
+    CreateDeliveryOrderAction -> Database: Salva snapshots de endereço (coleta/entrega) e cria DeliveryOrder (status: PENDING)
+    activate Database #FCD34D
+    Database --> CreateDeliveryOrderAction: deliveryOrder
+    deactivate Database
+
+    CreateDeliveryOrderAction --> CreateDeliveryOrderListener: retorna deliveryOrder
+    deactivate CreateDeliveryOrderAction
+    deactivate CreateDeliveryOrderListener
+end
+
+@enduml
