@@ -1,0 +1,62 @@
+@startuml ciclo_vida_oferta
+skinparam shadowing false
+skinparam monochrome true
+skinparam linetype ortho
+skinparam defaultFontName "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif
+skinparam defaultFontSize 12
+skinparam roundCorner 8
+skinparam nodesep 120
+skinparam ranksep 80
+hide empty description
+
+skinparam state {
+    BackgroundColor #FFFFFF
+    BorderColor #222222
+    ArrowColor #222222
+    FontName "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif
+    FontSize 13
+    FontStyle bold
+    AttributeFontSize 11
+    AttributeFontStyle normal
+}
+
+top to bottom direction
+
+state "Validando Oferta" as Validando
+Validando : do / verificar categoria e consultar catálogo externo
+
+state "Disponibilizando para Compra" as Disponibilizando
+
+state "Atualizando Oferta" as Atualizando
+Atualizando : entry / validar limite mínimo de estoque reservado
+Atualizando : do / atualizar preço, categoria ou estoque total
+
+state "Reservando Estoque" as Reservando
+Reservando : entry / bloquear registro da oferta
+Reservando : do / registrar compra e atualizar quantidade reservada
+Reservando : exit / emitir evento de compra criada
+
+state "Encerrando Oferta" as Encerrando
+Encerrando : do / inativar oferta por esgotamento de estoque
+
+state valida_criacao <<choice>>
+state verifica_saldo <<choice>>
+state fim_rejeitado <<end>>
+
+[*] --> Validando : Produtor solicita criação
+
+Validando --> valida_criacao
+valida_criacao --> fim_rejeitado : Criação rejeitada\n[categoria ou produto inválido]
+valida_criacao --> Disponibilizando : Oferta publicada\n[dados válidos e estoque > 0]
+
+Disponibilizando -left-> Atualizando : Produtor edita oferta
+Atualizando -up-> Disponibilizando : Edição concluída\n[estoque total >= reservado]
+
+Disponibilizando --> Reservando : Varejista realiza compra\n[quantidade <= saldo disponível]
+Reservando --> verifica_saldo
+verifica_saldo --> Encerrando : Compra total confirmada\n[saldo disponível == 0]
+verifica_saldo --> Disponibilizando : Compra parcial confirmada\n[saldo disponível > 0]
+
+Encerrando --> [*] : Oferta finalizada
+
+@enduml
