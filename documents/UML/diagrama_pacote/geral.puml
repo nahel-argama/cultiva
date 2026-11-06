@@ -1,44 +1,48 @@
 @startuml geral
+skinparam monochrome true
 skinparam shadowing false
 skinparam packageStyle folder
 skinparam defaultFontName "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif
 skinparam defaultFontSize 12
 skinparam nodesep 45
 skinparam ranksep 75
-skinparam arrowThickness 1.5
-skinparam ArrowColor #334155
-skinparam ArrowFontColor #1E293B
+skinparam arrowThickness 1.4
+skinparam ArrowColor #222222
+skinparam ArrowFontColor #111111
 skinparam ArrowFontSize 11
 
 skinparam package {
+    BackgroundColor #FFFFFF
+    BorderColor #222222
+    FontColor #111111
     FontName "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif
     FontSize 13
     FontStyle bold
     BorderThickness 1.5
     StereotypeFontSize 11
-    StereotypeFontColor #475569
+    StereotypeFontColor #555555
 }
 
 top to bottom direction
 
 ' ============================================================================
-' 1. CAMADA DE APRESENTAÇÃO (CONTROLLERS) - Tema Azul
+' 1. CAMADA DE APRESENTAÇÃO (CONTROLLERS)
 ' ============================================================================
-package "Camada de Apresentação (Controllers)" as Presentation #EFF6FF;line:2563EB;text:1E3A8A {
+package "Camada de Apresentação (Controllers)" as Presentation #FAFAFA {
 
-    package "Wishlist\Controllers" as C_Wishlist <<REST API>> #DBEAFE;line:3B82F6;text:1E3A8A {
+    package "Wishlist\Controllers" as C_Wishlist <<REST API>> #F0F0F0 {
     }
 
-    package "Auth\Controllers" as C_Auth <<REST API>> #DBEAFE;line:3B82F6;text:1E3A8A {
+    package "Auth\Controllers" as C_Auth <<REST API>> #F0F0F0 {
     }
 
-    package "Catalog\Controllers" as C_Catalog <<REST API>> #DBEAFE;line:3B82F6;text:1E3A8A {
+    package "Catalog\Controllers" as C_Catalog <<REST API>> #F0F0F0 {
     }
 
-    package "Purchase\Controllers" as C_Purchase <<REST API>> #DBEAFE;line:3B82F6;text:1E3A8A {
+    package "Purchase\Controllers" as C_Purchase <<REST API>> #F0F0F0 {
     }
 
-    package "Logistics\Controllers" as C_Logistics <<REST API>> #DBEAFE;line:3B82F6;text:1E3A8A {
+    package "Logistics\Controllers" as C_Logistics <<REST API>> #F0F0F0 {
     }
 
     C_Wishlist -[hidden]right-> C_Auth
@@ -48,23 +52,23 @@ package "Camada de Apresentação (Controllers)" as Presentation #EFF6FF;line:25
 }
 
 ' ============================================================================
-' 2. CAMADA DE NEGÓCIO (ACTIONS) - Tema Âmbar
+' 2. CAMADA DE NEGÓCIO (ACTIONS)
 ' ============================================================================
-package "Camada de Negócio (Actions)" as Business #FFFBEB;line:D97706;text:78350F {
+package "Camada de Negócio (Actions)" as Business #FAFAFA {
 
-    package "Wishlist\Actions" as A_Wishlist <<Business>> #FEF3C7;line:F59E0B;text:78350F {
+    package "Wishlist\Actions" as A_Wishlist <<Business>> #F0F0F0 {
     }
 
-    package "Identity\Actions" as A_Identity <<Business>> #FEF3C7;line:F59E0B;text:78350F {
+    package "Identity\Actions" as A_Identity <<Business>> #F0F0F0 {
     }
 
-    package "Offer\Actions" as A_Offer <<Business>> #FEF3C7;line:F59E0B;text:78350F {
+    package "Offer\Actions" as A_Offer <<Business>> #F0F0F0 {
     }
 
-    package "Purchase\Actions" as A_Purchase <<Business>> #FEF3C7;line:F59E0B;text:78350F {
+    package "Purchase\Actions" as A_Purchase <<Business>> #F0F0F0 {
     }
 
-    package "Logistics\Actions" as A_Logistics <<Business>> #FEF3C7;line:F59E0B;text:78350F {
+    package "Logistics\Actions" as A_Logistics <<Business>> #F0F0F0 {
     }
 
     A_Wishlist -[hidden]right-> A_Identity
@@ -74,23 +78,23 @@ package "Camada de Negócio (Actions)" as Business #FFFBEB;line:D97706;text:7835
 }
 
 ' ============================================================================
-' 3. CAMADA DE DADOS (MODELS) - Tema Esmeralda
+' 3. CAMADA DE DADOS (MODELS)
 ' ============================================================================
-package "Camada de Dados (Models)" as Data #ECFDF5;line:059669;text:064E3B {
+package "Camada de Dados (Models)" as Data #FAFAFA {
 
-    package "Wishlist\Models" as M_Wishlist <<Persistence>> #D1FAE5;line:10B981;text:064E3B {
+    package "Wishlist\Models" as M_Wishlist <<Persistence>> #F0F0F0 {
     }
 
-    package "Identity\Models" as M_Identity <<Persistence>> #D1FAE5;line:10B981;text:064E3B {
+    package "Identity\Models" as M_Identity <<Persistence>> #F0F0F0 {
     }
 
-    package "Catalog\Models" as M_Catalog <<Persistence>> #D1FAE5;line:10B981;text:064E3B {
+    package "Catalog\Models" as M_Catalog <<Persistence>> #F0F0F0 {
     }
 
-    package "Purchase\Models" as M_Purchase <<Persistence>> #D1FAE5;line:10B981;text:064E3B {
+    package "Purchase\Models" as M_Purchase <<Persistence>> #F0F0F0 {
     }
 
-    package "Logistics\Models" as M_Logistics <<Persistence>> #D1FAE5;line:10B981;text:064E3B {
+    package "Logistics\Models" as M_Logistics <<Persistence>> #F0F0F0 {
     }
 
     M_Wishlist -[hidden]right-> M_Identity
