@@ -1,0 +1,140 @@
+@startuml geral
+skinparam shadowing false
+skinparam packageStyle folder
+skinparam defaultFontName "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif
+skinparam defaultFontSize 12
+skinparam nodesep 45
+skinparam ranksep 75
+skinparam arrowThickness 1.5
+skinparam ArrowColor #334155
+skinparam ArrowFontColor #1E293B
+skinparam ArrowFontSize 11
+
+skinparam package {
+    FontName "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif
+    FontSize 13
+    FontStyle bold
+    BorderThickness 1.5
+    StereotypeFontSize 11
+    StereotypeFontColor #475569
+}
+
+top to bottom direction
+
+' ============================================================================
+' 1. CAMADA DE APRESENTAÇÃO (CONTROLLERS) - Tema Azul
+' ============================================================================
+package "Camada de Apresentação (Controllers)" as Presentation #EFF6FF;line:2563EB;text:1E3A8A {
+
+    package "Wishlist\Controllers" as C_Wishlist <<REST API>> #DBEAFE;line:3B82F6;text:1E3A8A {
+    }
+
+    package "Auth\Controllers" as C_Auth <<REST API>> #DBEAFE;line:3B82F6;text:1E3A8A {
+    }
+
+    package "Catalog\Controllers" as C_Catalog <<REST API>> #DBEAFE;line:3B82F6;text:1E3A8A {
+    }
+
+    package "Purchase\Controllers" as C_Purchase <<REST API>> #DBEAFE;line:3B82F6;text:1E3A8A {
+    }
+
+    package "Logistics\Controllers" as C_Logistics <<REST API>> #DBEAFE;line:3B82F6;text:1E3A8A {
+    }
+
+    C_Wishlist -[hidden]right-> C_Auth
+    C_Auth -[hidden]right-> C_Catalog
+    C_Catalog -[hidden]right-> C_Purchase
+    C_Purchase -[hidden]right-> C_Logistics
+}
+
+' ============================================================================
+' 2. CAMADA DE NEGÓCIO (ACTIONS) - Tema Âmbar
+' ============================================================================
+package "Camada de Negócio (Actions)" as Business #FFFBEB;line:D97706;text:78350F {
+
+    package "Wishlist\Actions" as A_Wishlist <<Business>> #FEF3C7;line:F59E0B;text:78350F {
+    }
+
+    package "Identity\Actions" as A_Identity <<Business>> #FEF3C7;line:F59E0B;text:78350F {
+    }
+
+    package "Offer\Actions" as A_Offer <<Business>> #FEF3C7;line:F59E0B;text:78350F {
+    }
+
+    package "Purchase\Actions" as A_Purchase <<Business>> #FEF3C7;line:F59E0B;text:78350F {
+    }
+
+    package "Logistics\Actions" as A_Logistics <<Business>> #FEF3C7;line:F59E0B;text:78350F {
+    }
+
+    A_Wishlist -[hidden]right-> A_Identity
+    A_Identity -[hidden]right-> A_Offer
+    A_Offer -[hidden]right-> A_Purchase
+    A_Purchase -[hidden]right-> A_Logistics
+}
+
+' ============================================================================
+' 3. CAMADA DE DADOS (MODELS) - Tema Esmeralda
+' ============================================================================
+package "Camada de Dados (Models)" as Data #ECFDF5;line:059669;text:064E3B {
+
+    package "Wishlist\Models" as M_Wishlist <<Persistence>> #D1FAE5;line:10B981;text:064E3B {
+    }
+
+    package "Identity\Models" as M_Identity <<Persistence>> #D1FAE5;line:10B981;text:064E3B {
+    }
+
+    package "Catalog\Models" as M_Catalog <<Persistence>> #D1FAE5;line:10B981;text:064E3B {
+    }
+
+    package "Purchase\Models" as M_Purchase <<Persistence>> #D1FAE5;line:10B981;text:064E3B {
+    }
+
+    package "Logistics\Models" as M_Logistics <<Persistence>> #D1FAE5;line:10B981;text:064E3B {
+    }
+
+    M_Wishlist -[hidden]right-> M_Identity
+    M_Identity -[hidden]right-> M_Catalog
+    M_Catalog -[hidden]right-> M_Purchase
+    M_Purchase -[hidden]right-> M_Logistics
+}
+
+' ============================================================================
+' RELAÇÕES DE USO: APRESENTAÇÃO -> NEGÓCIO
+' ============================================================================
+C_Wishlist ..> A_Wishlist : <<use>>
+C_Auth ..> A_Identity : <<use>>
+C_Catalog ..> A_Offer : <<use>>
+C_Purchase ..> A_Purchase : <<use>>
+C_Logistics ..> A_Logistics : <<use>>
+
+' ============================================================================
+' RELAÇÕES DE USO ENTRE REGRAS DE NEGÓCIO (ACTIONS -> ACTIONS)
+' ============================================================================
+A_Wishlist .right.> A_Identity : <<use>>
+A_Offer .left.> A_Identity : <<use>>
+A_Purchase .left.> A_Offer : <<use>>
+A_Purchase .right.> A_Logistics : <<use>>
+
+' ============================================================================
+' RELAÇÕES DE USO: NEGÓCIO -> DADOS
+' ============================================================================
+A_Wishlist ..> M_Wishlist : <<use>>
+A_Wishlist ..> M_Identity : <<use>>
+A_Identity ..> M_Identity : <<use>>
+A_Offer ..> M_Catalog : <<use>>
+A_Offer ..> M_Identity : <<use>>
+A_Purchase ..> M_Purchase : <<use>>
+A_Purchase ..> M_Catalog : <<use>>
+A_Logistics ..> M_Logistics : <<use>>
+A_Logistics ..> M_Purchase : <<use>>
+
+' ============================================================================
+' RELAÇÕES ESTRUTURAIS ENTRE MODELOS DE DADOS (MODELS -> MODELS)
+' ============================================================================
+M_Wishlist .right.> M_Identity : <<use>>
+M_Catalog .left.> M_Identity : <<use>>
+M_Purchase .left.> M_Catalog : <<use>>
+M_Logistics .left.> M_Purchase : <<use>>
+
+@enduml
