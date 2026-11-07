@@ -3,24 +3,22 @@ skinparam monochrome true
 skinparam shadowing false
 skinparam packageStyle folder
 skinparam defaultFontName "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif
-skinparam defaultFontSize 12
-skinparam nodesep 45
-skinparam ranksep 75
+skinparam defaultFontSize 11
+skinparam nodesep 28
+skinparam ranksep 65
 skinparam arrowThickness 1.4
 skinparam ArrowColor #222222
 skinparam ArrowFontColor #111111
-skinparam ArrowFontSize 11
+skinparam ArrowFontSize 10
 
 skinparam package {
     BackgroundColor #FFFFFF
     BorderColor #222222
     FontColor #111111
     FontName "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif
-    FontSize 13
+    FontSize 12
     FontStyle bold
-    BorderThickness 1.5
-    StereotypeFontSize 11
-    StereotypeFontColor #555555
+    BorderThickness 1.4
 }
 
 top to bottom direction
@@ -30,25 +28,48 @@ top to bottom direction
 ' ============================================================================
 package "Camada de Apresentação (Controllers)" as Presentation #FAFAFA {
 
-    package "Wishlist\Controllers" as C_Wishlist <<REST API>> #F0F0F0 {
-    }
+    package Wishlist_Controllers [
+    <b>Cultiva\Wishlist\Controllers</b>
+    <i>«REST API»</i>
+    --
+    • WishlistController
+    ]
 
-    package "Auth\Controllers" as C_Auth <<REST API>> #F0F0F0 {
-    }
+    package Auth_Controllers [
+    <b>Cultiva\Auth\Controllers</b>
+    <i>«REST API»</i>
+    --
+    • LoginController
+    • RegisterController
+    ]
 
-    package "Catalog\Controllers" as C_Catalog <<REST API>> #F0F0F0 {
-    }
+    package Catalog_Controllers [
+    <b>Cultiva\Catalog\Controllers</b>
+    <i>«REST API»</i>
+    --
+    • OfferController
+    • CategoryController
+    ]
 
-    package "Purchase\Controllers" as C_Purchase <<REST API>> #F0F0F0 {
-    }
+    package Purchase_Controllers [
+    <b>Cultiva\Purchase\Controllers</b>
+    <i>«REST API»</i>
+    --
+    • PurchaseController
+    ]
 
-    package "Logistics\Controllers" as C_Logistics <<REST API>> #F0F0F0 {
-    }
+    package Logistics_Controllers [
+    <b>Cultiva\Logistics\Controllers</b>
+    <i>«REST API»</i>
+    --
+    • DeliveryTripController
+    • GoLogDriverController
+    ]
 
-    C_Wishlist -[hidden]right-> C_Auth
-    C_Auth -[hidden]right-> C_Catalog
-    C_Catalog -[hidden]right-> C_Purchase
-    C_Purchase -[hidden]right-> C_Logistics
+    Wishlist_Controllers -[hidden]right-> Auth_Controllers
+    Auth_Controllers -[hidden]right-> Catalog_Controllers
+    Catalog_Controllers -[hidden]right-> Purchase_Controllers
+    Purchase_Controllers -[hidden]right-> Logistics_Controllers
 }
 
 ' ============================================================================
@@ -56,25 +77,56 @@ package "Camada de Apresentação (Controllers)" as Presentation #FAFAFA {
 ' ============================================================================
 package "Camada de Negócio (Actions)" as Business #FAFAFA {
 
-    package "Wishlist\Actions" as A_Wishlist <<Business>> #F0F0F0 {
-    }
+    package Wishlist_Actions [
+    <b>Cultiva\Wishlist\Actions</b>
+    <i>«Business»</i>
+    --
+    • AddWishlistItemAction
+    • GetWishlistAnalyticsAction
+    • ListWishlistItemsAction
+    ]
 
-    package "Identity\Actions" as A_Identity <<Business>> #F0F0F0 {
-    }
+    package Identity_Actions [
+    <b>Cultiva\Identity\Actions</b>
+    <i>«Business»</i>
+    --
+    • SignUpAction  • LoginAction
+    • CreateUserAction
+    • VerifyUserDocumentAction
+    ]
 
-    package "Offer\Actions" as A_Offer <<Business>> #F0F0F0 {
-    }
+    package Offer_Actions [
+    <b>Cultiva\Offer\Actions</b>
+    <i>«Business»</i>
+    --
+    • CreateOfferAction
+    • UpdateOfferAction
+    • ListAvailableOffersAction
+    • PopulateProductImageAction
+    ]
 
-    package "Purchase\Actions" as A_Purchase <<Business>> #F0F0F0 {
-    }
+    package Purchase_Actions [
+    <b>Cultiva\Purchase\Actions</b>
+    <i>«Business»</i>
+    --
+    • CreatePurchaseAction
+    • ListProducerSalesAction
+    • ListRetailerPurchasesAction
+    ]
 
-    package "Logistics\Actions" as A_Logistics <<Business>> #F0F0F0 {
-    }
+    package Logistics_Actions [
+    <b>Cultiva\Logistics\Actions</b>
+    <i>«Business»</i>
+    --
+    • CreateDeliveryOrderAction
+    • AssignTripAction
+    • ConfirmTripStopAction
+    ]
 
-    A_Wishlist -[hidden]right-> A_Identity
-    A_Identity -[hidden]right-> A_Offer
-    A_Offer -[hidden]right-> A_Purchase
-    A_Purchase -[hidden]right-> A_Logistics
+    Wishlist_Actions -[hidden]right-> Identity_Actions
+    Identity_Actions -[hidden]right-> Offer_Actions
+    Offer_Actions -[hidden]right-> Purchase_Actions
+    Purchase_Actions -[hidden]right-> Logistics_Actions
 }
 
 ' ============================================================================
@@ -82,63 +134,86 @@ package "Camada de Negócio (Actions)" as Business #FAFAFA {
 ' ============================================================================
 package "Camada de Dados (Models)" as Data #FAFAFA {
 
-    package "Wishlist\Models" as M_Wishlist <<Persistence>> #F0F0F0 {
-    }
+    package Wishlist_Models [
+    <b>Cultiva\Wishlist\Models</b>
+    <i>«Persistence»</i>
+    --
+    • WishlistItem
+    ]
 
-    package "Identity\Models" as M_Identity <<Persistence>> #F0F0F0 {
-    }
+    package Identity_Models [
+    <b>Cultiva\Identity\Models</b>
+    <i>«Persistence»</i>
+    --
+    • User  • Company  • Address
+    • Producer  • Retailer
+    ]
 
-    package "Catalog\Models" as M_Catalog <<Persistence>> #F0F0F0 {
-    }
+    package Catalog_Models [
+    <b>Cultiva\Catalog\Models</b>
+    <i>«Persistence»</i>
+    --
+    • Offer
+    • Category
+    ]
 
-    package "Purchase\Models" as M_Purchase <<Persistence>> #F0F0F0 {
-    }
+    package Purchase_Models [
+    <b>Cultiva\Purchase\Models</b>
+    <i>«Persistence»</i>
+    --
+    • Purchase
+    ]
 
-    package "Logistics\Models" as M_Logistics <<Persistence>> #F0F0F0 {
-    }
+    package Logistics_Models [
+    <b>Cultiva\Logistics\Models</b>
+    <i>«Persistence»</i>
+    --
+    • DeliveryOrder  • DeliveryTrip
+    • Vehicle  • CargoType
+    ]
 
-    M_Wishlist -[hidden]right-> M_Identity
-    M_Identity -[hidden]right-> M_Catalog
-    M_Catalog -[hidden]right-> M_Purchase
-    M_Purchase -[hidden]right-> M_Logistics
+    Wishlist_Models -[hidden]right-> Identity_Models
+    Identity_Models -[hidden]right-> Catalog_Models
+    Catalog_Models -[hidden]right-> Purchase_Models
+    Purchase_Models -[hidden]right-> Logistics_Models
 }
 
 ' ============================================================================
 ' RELAÇÕES DE USO: APRESENTAÇÃO -> NEGÓCIO
 ' ============================================================================
-C_Wishlist ..> A_Wishlist : <<use>>
-C_Auth ..> A_Identity : <<use>>
-C_Catalog ..> A_Offer : <<use>>
-C_Purchase ..> A_Purchase : <<use>>
-C_Logistics ..> A_Logistics : <<use>>
+Wishlist_Controllers ..> Wishlist_Actions : <<use>>
+Auth_Controllers ..> Identity_Actions : <<use>>
+Catalog_Controllers ..> Offer_Actions : <<use>>
+Purchase_Controllers ..> Purchase_Actions : <<use>>
+Logistics_Controllers ..> Logistics_Actions : <<use>>
 
 ' ============================================================================
 ' RELAÇÕES DE USO ENTRE REGRAS DE NEGÓCIO (ACTIONS -> ACTIONS)
 ' ============================================================================
-A_Wishlist .right.> A_Identity : <<use>>
-A_Offer .left.> A_Identity : <<use>>
-A_Purchase .left.> A_Offer : <<use>>
-A_Purchase .right.> A_Logistics : <<use>>
+Wishlist_Actions .right.> Identity_Actions : <<use>>
+Offer_Actions .left.> Identity_Actions : <<use>>
+Purchase_Actions .left.> Offer_Actions : <<use>>
+Purchase_Actions .right.> Logistics_Actions : <<use>>
 
 ' ============================================================================
 ' RELAÇÕES DE USO: NEGÓCIO -> DADOS
 ' ============================================================================
-A_Wishlist ..> M_Wishlist : <<use>>
-A_Wishlist ..> M_Identity : <<use>>
-A_Identity ..> M_Identity : <<use>>
-A_Offer ..> M_Catalog : <<use>>
-A_Offer ..> M_Identity : <<use>>
-A_Purchase ..> M_Purchase : <<use>>
-A_Purchase ..> M_Catalog : <<use>>
-A_Logistics ..> M_Logistics : <<use>>
-A_Logistics ..> M_Purchase : <<use>>
+Wishlist_Actions ..> Wishlist_Models : <<use>>
+Wishlist_Actions ..> Identity_Models : <<use>>
+Identity_Actions ..> Identity_Models : <<use>>
+Offer_Actions ..> Catalog_Models : <<use>>
+Offer_Actions ..> Identity_Models : <<use>>
+Purchase_Actions ..> Purchase_Models : <<use>>
+Purchase_Actions ..> Catalog_Models : <<use>>
+Logistics_Actions ..> Logistics_Models : <<use>>
+Logistics_Actions ..> Purchase_Models : <<use>>
 
 ' ============================================================================
 ' RELAÇÕES ESTRUTURAIS ENTRE MODELOS DE DADOS (MODELS -> MODELS)
 ' ============================================================================
-M_Wishlist .right.> M_Identity : <<use>>
-M_Catalog .left.> M_Identity : <<use>>
-M_Purchase .left.> M_Catalog : <<use>>
-M_Logistics .left.> M_Purchase : <<use>>
+Wishlist_Models .right.> Identity_Models : <<use>>
+Catalog_Models .left.> Identity_Models : <<use>>
+Purchase_Models .left.> Catalog_Models : <<use>>
+Logistics_Models .left.> Purchase_Models : <<use>>
 
 @enduml

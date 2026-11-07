@@ -1,0 +1,150 @@
+@startuml geral
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif
+skinparam defaultFontSize 11
+skinparam roundCorner 4
+skinparam nodesep 60
+skinparam ranksep 80
+skinparam arrowThickness 1.3
+skinparam ArrowColor #222222
+skinparam ArrowFontColor #111111
+skinparam ArrowFontSize 10
+skinparam linetype ortho
+
+skinparam node {
+    BackgroundColor #FFFFFF
+    BorderColor #222222
+    FontColor #111111
+    FontSize 12
+    FontStyle bold
+    BorderThickness 1.4
+}
+
+skinparam artifact {
+    BackgroundColor #FAFAFA
+    BorderColor #444444
+    FontSize 10
+}
+
+skinparam database {
+    BackgroundColor #FFFFFF
+    BorderColor #222222
+    FontSize 11
+    FontStyle bold
+}
+
+skinparam cloud {
+    BackgroundColor #FAFAFA
+    BorderColor #222222
+    FontSize 12
+    FontStyle bold
+}
+
+top to bottom direction
+
+' ============================================================================
+' 1. CLIENT LAYER
+' ============================================================================
+node "Dispositivo do Usuário" as ClientDevice <<device>> {
+    node "Navegador Web" as Browser <<executionEnvironment>> {
+        artifact "Frontend SPA\n(Vue.js 3 / Vite)" as FrontendApp <<artifact>>
+    }
+}
+
+' ============================================================================
+' 2. INGRESS & API GATEWAY LAYER
+' ============================================================================
+node "Servidor de Entrada & Proxy Reverso" as GatewayServer <<device>> {
+    node "NGINX (API Gateway & Proxy)" as NginxGateway <<executionEnvironment>> {
+        artifact "Static Files Server" as StaticFiles <<artifact>>
+        artifact "API Routing Engine" as ReverseProxy <<artifact>>
+    }
+}
+
+' ============================================================================
+' 3. SERVICES LAYER
+' ============================================================================
+cloud "APIs Externas (SaaS)" as ExternalCloud {
+    node "BrasilAPI" as BrasilApi <<externalSystem>> {
+        artifact "CEP & Geo" as BrasilApiDesc <<service>>
+    }
+
+    node "GoLog TMS API" as GoLogApi <<externalSystem>> {
+        artifact "Fretes & Frotas" as GoLogDesc <<service>>
+    }
+
+    node "Validador Docs" as DocApi <<externalSystem>> {
+        artifact "Validação de RG" as DocDesc <<service>>
+    }
+
+    BrasilApi -[hidden]down-> GoLogApi
+    GoLogApi -[hidden]down-> DocApi
+}
+
+node "Servidor da Aplicação Principal" as BackendServer <<device>> {
+    node "PHP-FPM Container (Laravel)" as PhpContainer <<executionEnvironment>> {
+        artifact "Cultiva Backend API" as BackendApp <<artifact>>
+    }
+
+    node "Worker Container (Horizon)" as WorkerContainer <<executionEnvironment>> {
+        artifact "Queue Worker Daemon" as WorkerApp <<artifact>>
+    }
+}
+
+node "Servidor do Serviço de Produtos" as ProductServer <<device>> {
+    node "FastAPI Container (Uvicorn)" as PythonContainer <<executionEnvironment>> {
+        artifact "Product Source API" as ProductApp <<artifact>>
+    }
+    
+    database "DuckDB Database" as DuckDB <<database>> {
+        artifact "database.db" as DuckDbFile <<artifact>>
+    }
+}
+
+' ============================================================================
+' 4. DATA & STORAGE LAYER
+' ============================================================================
+node "Servidor de Banco Relacional" as DbServer <<device>> {
+    database "PostgreSQL 17 + PostGIS" as PostgresDB <<database>> {
+        artifact "cultiva_db" as PostgresData <<artifact>>
+    }
+}
+
+node "Servidor de Cache & Filas" as RedisServer <<device>> {
+    database "Redis 8 In-Memory" as RedisDB <<database>> {
+        artifact "cultiva_redis" as RedisData <<artifact>>
+    }
+}
+
+' ============================================================================
+' ALINHAMENTO ESTRUTURAL
+' ============================================================================
+ClientDevice -[hidden]down-> GatewayServer
+
+ExternalCloud -[hidden]right-> BackendServer
+BackendServer -[hidden]right-> ProductServer
+
+DbServer -[hidden]right-> RedisServer
+BackendServer -[hidden]down-> DbServer
+
+' ============================================================================
+' CONEXÕES LIMPAS (SEM OVERLAPS)
+' ============================================================================
+ClientDevice -down..> NginxGateway : \nHTTPS :443\n(Web & REST)
+
+GatewayServer -down..> BackendServer : FastCGI :9000\n(/api/v1/*)
+GatewayServer -right..> ProductServer : HTTP :8000\n(/api/products/*)
+
+BackendServer -right..> ProductServer : HTTP :8000\n(Consulta Preços)
+
+ProductApp -down..> DuckDB : File I/O\n(SQL)
+
+BackendServer -down..> DbServer : TCP :5432 (SQL)
+BackendServer -down..> RedisServer : TCP :6379 (Cache/Filas)
+
+BackendServer -left..> BrasilApi : HTTPS (CEP)
+BackendServer -left..> GoLogApi : HTTPS (Fretes)
+BackendServer -left..> DocApi : HTTPS (RG)
+
+@enduml

@@ -1,0 +1,165 @@
+@startuml geral
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif
+skinparam defaultFontSize 11
+skinparam roundCorner 4
+skinparam nodesep 50
+skinparam ranksep 75
+skinparam arrowThickness 1.3
+skinparam ArrowColor #222222
+skinparam ArrowFontColor #111111
+skinparam ArrowFontSize 10
+skinparam linetype ortho
+
+skinparam component {
+    BackgroundColor #FFFFFF
+    BorderColor #222222
+    FontColor #111111
+    FontSize 11
+    FontStyle bold
+    BorderThickness 1.3
+}
+
+skinparam package {
+    BackgroundColor #FAFAFA
+    BorderColor #222222
+    FontColor #111111
+    FontSize 12
+    FontStyle bold
+    BorderThickness 1.4
+}
+
+skinparam database {
+    BackgroundColor #FFFFFF
+    BorderColor #222222
+    FontSize 11
+    FontStyle bold
+}
+
+skinparam cloud {
+    BackgroundColor #FAFAFA
+    BorderColor #222222
+    FontSize 12
+    FontStyle bold
+}
+
+top to bottom direction
+
+' ============================================================================
+' 1. CLIENTE & FRONTEND
+' ============================================================================
+package "Cliente Web" as ClientPkg {
+    component "Frontend SPA\n(Vue.js 3 / PrimeVue)" as Comp_Frontend <<Component>>
+}
+
+' ============================================================================
+' 2. API GATEWAY
+' ============================================================================
+package "Borda & Roteamento" as EdgePkg {
+    component "API Gateway & Proxy Reverso\n(NGINX)" as Comp_Gateway <<Component>>
+}
+
+' ============================================================================
+' 3. SUBSISTEMA BACKEND PRINCIPAL (CULTIVA)
+' ============================================================================
+package "Subsistema Backend Principal (Cultiva Core - Laravel)" as BackendPkg {
+    component "Lista de Desejos\n(Wishlist & Demanda)" as Comp_Wishlist
+    component "Autenticação & Usuários\n(Auth & Identity)" as Comp_Auth
+    component "Catálogo & Ofertas\n(Offers & Category)" as Comp_Offers
+    component "Compras & Checkout\n(Purchases & Sales)" as Comp_Purchases
+    component "Logística & Frotas\n(Delivery & Trips)" as Comp_Logistics
+
+    component "Módulo de Integrações Externas\n(HTTP Adapters)" as Comp_Integrations
+    component "Processador de Filas\n(Horizon Worker)" as Comp_Worker
+
+    ' Alinhamento horizontal da camada de domínio
+    Comp_Wishlist -[hidden]right-> Comp_Auth
+    Comp_Auth -[hidden]right-> Comp_Offers
+    Comp_Offers -[hidden]right-> Comp_Purchases
+    Comp_Purchases -[hidden]right-> Comp_Logistics
+
+    ' Alinhamento vertical interno
+    Comp_Auth -[hidden]down-> Comp_Integrations
+    Comp_Purchases -[hidden]down-> Comp_Worker
+
+    ' Orquestração de negócio direta (apenas vizinhos imediatos)
+    Comp_Wishlist .right.> Comp_Auth : <<use>>
+    Comp_Offers .left.> Comp_Auth : <<use>>
+    Comp_Purchases .left.> Comp_Offers : <<use>>
+    Comp_Purchases .right.> Comp_Logistics : <<use>>
+
+    ' Integrações e Filas
+    Comp_Auth ..> Comp_Integrations : <<use>>
+    Comp_Offers ..> Comp_Integrations : <<use>>
+    Comp_Logistics ..> Comp_Integrations : <<use>>
+
+    Comp_Purchases ..> Comp_Worker : <<dispatch>>
+    Comp_Logistics ..> Comp_Worker : <<dispatch>>
+}
+
+' ============================================================================
+' 4. SERVIÇO DE PRODUTOS (MICROSERVIÇO PYTHON)
+' ============================================================================
+package "Serviço de Produtos (Product Source)" as ProductPkg {
+    component "API de Catálogo de Preços\n(FastAPI / Uvicorn)" as Comp_ProductAPI
+    component "Mecanismo de Ingestão\n(CLI / PROHORT Scraper)" as Comp_Scraper
+    database "DuckDB Database\n(database.db)" as DB_DuckDB
+
+    Comp_Scraper -down..> DB_DuckDB : Ingestão Batch
+    Comp_ProductAPI -down..> DB_DuckDB : Leitura SQL
+    Comp_Scraper .right.> Comp_ProductAPI : <<atualiza>>
+}
+
+' ============================================================================
+' 5. ARMAZENAMENTO & BANCOS DE DADOS
+' ============================================================================
+package "Camada de Persistência & Cache" as StoragePkg {
+    database "PostgreSQL 17 + PostGIS\n(cultiva_db)" as DB_Postgres
+    database "Redis 8 In-Memory\n(cultiva_redis)" as DB_Redis
+
+    DB_Redis -[hidden]right-> DB_Postgres
+}
+
+' ============================================================================
+' 6. SERVIÇOS EXTERNOS
+' ============================================================================
+cloud "APIs e Provedores Externos (SaaS)" as ExternalCloud {
+    component "GoLog TMS API\n(Frotas & Fretes)" as Ext_GoLog
+    component "Validador Docs\n(OCR / RG)" as Ext_DocValidation
+    component "BrasilAPI\n(CEP & Geo)" as Ext_BrasilApi
+
+    Ext_GoLog -[hidden]right-> Ext_DocValidation
+    Ext_DocValidation -[hidden]right-> Ext_BrasilApi
+}
+
+' ============================================================================
+' ALINHAMENTO GLOBAL
+' ============================================================================
+ProductPkg -[hidden]right-> BackendPkg
+ExternalCloud -[hidden]right-> StoragePkg
+
+' ============================================================================
+' CONEXÕES ENTRE SUBSISTEMAS E COMPONENTES
+' ============================================================================
+' Cliente -> Gateway
+Comp_Frontend -down..> Comp_Gateway : HTTPS :443\n(Web SPA)
+
+' Gateway -> Backend e Product Service
+Comp_Gateway -left..> Comp_ProductAPI : HTTP :8000\n(/api/products/*)
+Comp_Gateway -down..> BackendPkg : FastCGI :9000\n(/api/v1/*)
+
+' Backend -> Product Service (via Adaptador de Integrações)
+Comp_Integrations -left..> Comp_ProductAPI : HTTP :8000\n(Consulta Preços)
+
+' Backend -> Bancos de Dados
+BackendPkg -down..> DB_Postgres : TCP :5432 (SQL)
+BackendPkg -down..> DB_Redis : TCP :6379 (Cache)
+Comp_Worker -down..> DB_Redis : TCP :6379 (Filas)
+
+' Backend -> APIs Externas
+Comp_Integrations -down..> Ext_BrasilApi : HTTPS (CEP)
+Comp_Integrations -down..> Ext_GoLog : HTTPS (Fretes)
+Comp_Integrations -down..> Ext_DocValidation : HTTPS (RG)
+
+@enduml
