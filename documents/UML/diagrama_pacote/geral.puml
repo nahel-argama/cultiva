@@ -1,219 +1,57 @@
 @startuml geral
-skinparam monochrome true
+skinparam dpi 180
 skinparam shadowing false
-skinparam packageStyle folder
-skinparam defaultFontName "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif
-skinparam defaultFontSize 11
-skinparam nodesep 28
-skinparam ranksep 65
+skinparam roundCorner 8
+skinparam defaultFontName "Inter", "Segoe UI", Arial, sans-serif
+skinparam defaultFontSize 12
+skinparam nodesep 50
+skinparam ranksep 60
 skinparam arrowThickness 1.4
-skinparam ArrowColor #222222
-skinparam ArrowFontColor #111111
+skinparam ArrowColor #455A64
+skinparam ArrowFontColor #37474F
 skinparam ArrowFontSize 10
 
-skinparam package {
-    BackgroundColor #FFFFFF
-    BorderColor #222222
-    FontColor #111111
-    FontName "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif
-    FontSize 12
-    FontStyle bold
-    BorderThickness 1.4
-}
-
-top to bottom direction
-
-' ============================================================================
-' 1. CAMADA DE APRESENTAÇÃO (CONTROLLERS)
-' ============================================================================
-package "Camada de Apresentação (Controllers)" as Presentation #FAFAFA {
-
-    package Wishlist_Controllers [
-    <b>Cultiva\Wishlist\Controllers</b>
-    <i>«REST API»</i>
-    --
-    • WishlistController
-    ]
-
-    package Auth_Controllers [
-    <b>Cultiva\Auth\Controllers</b>
-    <i>«REST API»</i>
-    --
-    • LoginController
-    • RegisterController
-    ]
-
-    package Catalog_Controllers [
-    <b>Cultiva\Catalog\Controllers</b>
-    <i>«REST API»</i>
-    --
-    • OfferController
-    • CategoryController
-    ]
-
-    package Purchase_Controllers [
-    <b>Cultiva\Purchase\Controllers</b>
-    <i>«REST API»</i>
-    --
-    • PurchaseController
-    ]
-
-    package Logistics_Controllers [
-    <b>Cultiva\Logistics\Controllers</b>
-    <i>«REST API»</i>
-    --
-    • DeliveryTripController
-    • GoLogDriverController
-    ]
-
-    Wishlist_Controllers -[hidden]right-> Auth_Controllers
-    Auth_Controllers -[hidden]right-> Catalog_Controllers
-    Catalog_Controllers -[hidden]right-> Purchase_Controllers
-    Purchase_Controllers -[hidden]right-> Logistics_Controllers
+skinparam folder {
+    BorderThickness 1.5
 }
 
 ' ============================================================================
-' 2. CAMADA DE NEGÓCIO (ACTIONS)
+' PASTAS ABSTRATAS DE DOMÍNIO (MÓDULOS PRINCIPAIS)
 ' ============================================================================
-package "Camada de Negócio (Actions)" as Business #FAFAFA {
 
-    package Wishlist_Actions [
-    <b>Cultiva\Wishlist\Actions</b>
-    <i>«Business»</i>
-    --
-    • AddWishlistItemAction
-    • GetWishlistAnalyticsAction
-    • ListWishlistItemsAction
-    ]
+' Linha Superior (Acesso, Catálogo e Demanda)
+folder "<b>Autenticação</b>\n----\nControle Acesso" as Auth #E3F2FD;line:1976D2
+folder "<b>Catálogo</b>\n----\nGestão Produtos" as Catalog #E8F5E9;line:2E7D32
+folder "<b>Desejos</b>\n----\nAnálise Demanda" as Wishlist #EDE7F6;line:6A1B9A
 
-    package Identity_Actions [
-    <b>Cultiva\Identity\Actions</b>
-    <i>«Business»</i>
-    --
-    • SignUpAction  • LoginAction
-    • CreateUserAction
-    • VerifyUserDocumentAction
-    ]
-
-    package Offer_Actions [
-    <b>Cultiva\Offer\Actions</b>
-    <i>«Business»</i>
-    --
-    • CreateOfferAction
-    • UpdateOfferAction
-    • ListAvailableOffersAction
-    • PopulateProductImageAction
-    ]
-
-    package Purchase_Actions [
-    <b>Cultiva\Purchase\Actions</b>
-    <i>«Business»</i>
-    --
-    • CreatePurchaseAction
-    • ListProducerSalesAction
-    • ListRetailerPurchasesAction
-    ]
-
-    package Logistics_Actions [
-    <b>Cultiva\Logistics\Actions</b>
-    <i>«Business»</i>
-    --
-    • CreateDeliveryOrderAction
-    • AssignTripAction
-    • ConfirmTripStopAction
-    ]
-
-    Wishlist_Actions -[hidden]right-> Identity_Actions
-    Identity_Actions -[hidden]right-> Offer_Actions
-    Offer_Actions -[hidden]right-> Purchase_Actions
-    Purchase_Actions -[hidden]right-> Logistics_Actions
-}
+' Linha Inferior (Operação, Fulfillment e Integração Externa)
+folder "<b>Integrações</b>\n----\nServiços Externos" as Integrations #E0F2F1;line:00695C
+folder "<b>Logística</b>\n----\nGestão Entregas" as Logistics #FCE4EC;line:C2185B
+folder "<b>Compras</b>\n----\nPedidos Vendas" as Purchase #FFF8E1;line:EF6C00
 
 ' ============================================================================
-' 3. CAMADA DE DADOS (MODELS)
+' ALINHAMENTO ESTRUTURAL DA GRADE
 ' ============================================================================
-package "Camada de Dados (Models)" as Data #FAFAFA {
+Auth -[hidden]right-> Catalog
+Catalog -[hidden]right-> Wishlist
 
-    package Wishlist_Models [
-    <b>Cultiva\Wishlist\Models</b>
-    <i>«Persistence»</i>
-    --
-    • WishlistItem
-    ]
+Integrations -[hidden]right-> Logistics
+Logistics -[hidden]right-> Purchase
 
-    package Identity_Models [
-    <b>Cultiva\Identity\Models</b>
-    <i>«Persistence»</i>
-    --
-    • User  • Company  • Address
-    • Producer  • Retailer
-    ]
-
-    package Catalog_Models [
-    <b>Cultiva\Catalog\Models</b>
-    <i>«Persistence»</i>
-    --
-    • Offer
-    • Category
-    ]
-
-    package Purchase_Models [
-    <b>Cultiva\Purchase\Models</b>
-    <i>«Persistence»</i>
-    --
-    • Purchase
-    ]
-
-    package Logistics_Models [
-    <b>Cultiva\Logistics\Models</b>
-    <i>«Persistence»</i>
-    --
-    • DeliveryOrder  • DeliveryTrip
-    • Vehicle  • CargoType
-    ]
-
-    Wishlist_Models -[hidden]right-> Identity_Models
-    Identity_Models -[hidden]right-> Catalog_Models
-    Catalog_Models -[hidden]right-> Purchase_Models
-    Purchase_Models -[hidden]right-> Logistics_Models
-}
+Auth -[hidden]down-> Integrations
+Catalog -[hidden]down-> Logistics
+Wishlist -[hidden]down-> Purchase
 
 ' ============================================================================
-' RELAÇÕES DE USO: APRESENTAÇÃO -> NEGÓCIO
+' RELAÇÕES DE USO E DEPENDÊNCIA (PADRÃO OFICIAL UML 2.5: <<use>>)
 ' ============================================================================
-Wishlist_Controllers ..> Wishlist_Actions : <<use>>
-Auth_Controllers ..> Identity_Actions : <<use>>
-Catalog_Controllers ..> Offer_Actions : <<use>>
-Purchase_Controllers ..> Purchase_Actions : <<use>>
-Logistics_Controllers ..> Logistics_Actions : <<use>>
+Catalog .left.> Auth : <<use>>
+Wishlist .left.> Catalog : <<use>>
+Auth .down.> Integrations : <<use>>
 
-' ============================================================================
-' RELAÇÕES DE USO ENTRE REGRAS DE NEGÓCIO (ACTIONS -> ACTIONS)
-' ============================================================================
-Wishlist_Actions .right.> Identity_Actions : <<use>>
-Offer_Actions .left.> Identity_Actions : <<use>>
-Purchase_Actions .left.> Offer_Actions : <<use>>
-Purchase_Actions .right.> Logistics_Actions : <<use>>
-
-' ============================================================================
-' RELAÇÕES DE USO: NEGÓCIO -> DADOS
-' ============================================================================
-Wishlist_Actions ..> Wishlist_Models : <<use>>
-Wishlist_Actions ..> Identity_Models : <<use>>
-Identity_Actions ..> Identity_Models : <<use>>
-Offer_Actions ..> Catalog_Models : <<use>>
-Offer_Actions ..> Identity_Models : <<use>>
-Purchase_Actions ..> Purchase_Models : <<use>>
-Purchase_Actions ..> Catalog_Models : <<use>>
-Logistics_Actions ..> Logistics_Models : <<use>>
-Logistics_Actions ..> Purchase_Models : <<use>>
-
-' ============================================================================
-' RELAÇÕES ESTRUTURAIS ENTRE MODELOS DE DADOS (MODELS -> MODELS)
-' ============================================================================
-Wishlist_Models .right.> Identity_Models : <<use>>
-Catalog_Models .left.> Identity_Models : <<use>>
-Purchase_Models .left.> Catalog_Models : <<use>>
-Logistics_Models .left.> Purchase_Models : <<use>>
+Purchase .up.> Catalog : <<use>>
+Purchase .left.> Logistics : <<use>>
+Logistics .left.> Integrations : <<use>>
+Purchase .up.> Auth : <<use>>
 
 @enduml
