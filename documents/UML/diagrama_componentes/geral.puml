@@ -5,12 +5,13 @@ skinparam defaultFontName "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-ser
 skinparam defaultFontSize 11
 skinparam roundCorner 4
 skinparam nodesep 50
-skinparam ranksep 75
+skinparam ranksep 70
 skinparam arrowThickness 1.3
 skinparam ArrowColor #222222
 skinparam ArrowFontColor #111111
 skinparam ArrowFontSize 10
 skinparam linetype ortho
+skinparam componentStyle uml2
 
 skinparam component {
     BackgroundColor #FFFFFF
@@ -30,48 +31,34 @@ skinparam package {
     BorderThickness 1.4
 }
 
-skinparam database {
-    BackgroundColor #FFFFFF
-    BorderColor #222222
-    FontSize 11
-    FontStyle bold
-}
-
-skinparam cloud {
-    BackgroundColor #FAFAFA
-    BorderColor #222222
-    FontSize 12
-    FontStyle bold
-}
-
 top to bottom direction
 
 ' ============================================================================
 ' 1. CLIENTE & FRONTEND
 ' ============================================================================
 package "Cliente Web" as ClientPkg {
-    component "Frontend SPA\n(Vue.js 3 / PrimeVue)" as Comp_Frontend <<Component>>
+    component "Frontend SPA" as Comp_Frontend
 }
 
 ' ============================================================================
 ' 2. API GATEWAY
 ' ============================================================================
 package "Borda & Roteamento" as EdgePkg {
-    component "API Gateway & Proxy Reverso\n(NGINX)" as Comp_Gateway <<Component>>
+    component "API Gateway" as Comp_Gateway
 }
 
 ' ============================================================================
-' 3. SUBSISTEMA BACKEND PRINCIPAL (CULTIVA)
+' 3. SUBSISTEMA BACKEND PRINCIPAL
 ' ============================================================================
-package "Subsistema Backend Principal (Cultiva Core - Laravel)" as BackendPkg {
-    component "Lista de Desejos\n(Wishlist & Demanda)" as Comp_Wishlist
-    component "Autenticação & Usuários\n(Auth & Identity)" as Comp_Auth
-    component "Catálogo & Ofertas\n(Offers & Category)" as Comp_Offers
-    component "Compras & Checkout\n(Purchases & Sales)" as Comp_Purchases
-    component "Logística & Frotas\n(Delivery & Trips)" as Comp_Logistics
+package "Subsistema Backend Principal" as BackendPkg {
+    component "Lista de Desejos" as Comp_Wishlist
+    component "Autenticação & Usuários" as Comp_Auth
+    component "Catálogo & Ofertas" as Comp_Offers
+    component "Compras & Checkout" as Comp_Purchases
+    component "Logística & Frotas" as Comp_Logistics
 
-    component "Módulo de Integrações Externas\n(HTTP Adapters)" as Comp_Integrations
-    component "Processador de Filas\n(Horizon Worker)" as Comp_Worker
+    component "Módulo de Integrações Externas" as Comp_Integrations
+    component "Processador de Filas" as Comp_Worker
 
     ' Alinhamento horizontal da camada de domínio
     Comp_Wishlist -[hidden]right-> Comp_Auth
@@ -83,51 +70,51 @@ package "Subsistema Backend Principal (Cultiva Core - Laravel)" as BackendPkg {
     Comp_Auth -[hidden]down-> Comp_Integrations
     Comp_Purchases -[hidden]down-> Comp_Worker
 
-    ' Orquestração de negócio direta (apenas vizinhos imediatos)
-    Comp_Wishlist .right.> Comp_Auth : <<use>>
-    Comp_Offers .left.> Comp_Auth : <<use>>
-    Comp_Purchases .left.> Comp_Offers : <<use>>
-    Comp_Purchases .right.> Comp_Logistics : <<use>>
+    ' Conexões macho-fêmea internas (orquestração de domínio)
+    Comp_Wishlist -right(0- Comp_Auth
+    Comp_Offers -left(0- Comp_Auth
+    Comp_Purchases -left(0- Comp_Offers
+    Comp_Purchases -right(0- Comp_Logistics
 
-    ' Integrações e Filas
-    Comp_Auth ..> Comp_Integrations : <<use>>
-    Comp_Offers ..> Comp_Integrations : <<use>>
-    Comp_Logistics ..> Comp_Integrations : <<use>>
+    ' Conexões para Integrações e Filas
+    Comp_Auth -down(0- Comp_Integrations
+    Comp_Offers -down(0- Comp_Integrations
+    Comp_Logistics -down(0- Comp_Integrations
 
-    Comp_Purchases ..> Comp_Worker : <<dispatch>>
-    Comp_Logistics ..> Comp_Worker : <<dispatch>>
+    Comp_Purchases -down(0- Comp_Worker
+    Comp_Logistics -down(0- Comp_Worker
 }
 
 ' ============================================================================
-' 4. SERVIÇO DE PRODUTOS (MICROSERVIÇO PYTHON)
+' 4. SERVIÇO DE PRODUTOS
 ' ============================================================================
-package "Serviço de Produtos (Product Source)" as ProductPkg {
-    component "API de Catálogo de Preços\n(FastAPI / Uvicorn)" as Comp_ProductAPI
-    component "Mecanismo de Ingestão\n(CLI / PROHORT Scraper)" as Comp_Scraper
-    database "DuckDB Database\n(database.db)" as DB_DuckDB
+package "Serviço de Produtos" as ProductPkg {
+    component "API de Catálogo de Preços" as Comp_ProductAPI
+    component "Mecanismo de Ingestão" as Comp_Scraper
+    component "DuckDB" <<database>> as DB_DuckDB
 
-    Comp_Scraper -down..> DB_DuckDB : Ingestão Batch
-    Comp_ProductAPI -down..> DB_DuckDB : Leitura SQL
-    Comp_Scraper .right.> Comp_ProductAPI : <<atualiza>>
+    Comp_Scraper -down(0- DB_DuckDB
+    Comp_ProductAPI -down(0- DB_DuckDB
+    Comp_Scraper -right(0- Comp_ProductAPI
 }
 
 ' ============================================================================
-' 5. ARMAZENAMENTO & BANCOS DE DADOS
+' 5. PERSISTÊNCIA & CACHE
 ' ============================================================================
-package "Camada de Persistência & Cache" as StoragePkg {
-    database "PostgreSQL 17 + PostGIS\n(cultiva_db)" as DB_Postgres
-    database "Redis 8 In-Memory\n(cultiva_redis)" as DB_Redis
+package "Persistência & Cache" as StoragePkg {
+    component "PostgreSQL" <<database>> as DB_Postgres
+    component "Redis" <<database>> as DB_Redis
 
     DB_Redis -[hidden]right-> DB_Postgres
 }
 
 ' ============================================================================
-' 6. SERVIÇOS EXTERNOS
+' 6. PROVEDORES EXTERNOS
 ' ============================================================================
-cloud "APIs e Provedores Externos (SaaS)" as ExternalCloud {
-    component "GoLog TMS API\n(Frotas & Fretes)" as Ext_GoLog
-    component "Validador Docs\n(OCR / RG)" as Ext_DocValidation
-    component "BrasilAPI\n(CEP & Geo)" as Ext_BrasilApi
+package "Provedores Externos" as ExternalPkg {
+    component "GoLog TMS" as Ext_GoLog
+    component "Validador de Documentos" as Ext_DocValidation
+    component "BrasilAPI" as Ext_BrasilApi
 
     Ext_GoLog -[hidden]right-> Ext_DocValidation
     Ext_DocValidation -[hidden]right-> Ext_BrasilApi
@@ -137,29 +124,24 @@ cloud "APIs e Provedores Externos (SaaS)" as ExternalCloud {
 ' ALINHAMENTO GLOBAL
 ' ============================================================================
 ProductPkg -[hidden]right-> BackendPkg
-ExternalCloud -[hidden]right-> StoragePkg
+ExternalPkg -[hidden]right-> StoragePkg
 
 ' ============================================================================
 ' CONEXÕES ENTRE SUBSISTEMAS E COMPONENTES
 ' ============================================================================
-' Cliente -> Gateway
-Comp_Frontend -down..> Comp_Gateway : HTTPS :443\n(Web SPA)
+Comp_Frontend -down(0- Comp_Gateway
 
-' Gateway -> Backend e Product Service
-Comp_Gateway -left..> Comp_ProductAPI : HTTP :8000\n(/api/products/*)
-Comp_Gateway -down..> BackendPkg : FastCGI :9000\n(/api/v1/*)
+Comp_Gateway -left(0- Comp_ProductAPI
+Comp_Gateway -down(0- BackendPkg
 
-' Backend -> Product Service (via Adaptador de Integrações)
-Comp_Integrations -left..> Comp_ProductAPI : HTTP :8000\n(Consulta Preços)
+Comp_Integrations -left(0- Comp_ProductAPI
 
-' Backend -> Bancos de Dados
-BackendPkg -down..> DB_Postgres : TCP :5432 (SQL)
-BackendPkg -down..> DB_Redis : TCP :6379 (Cache)
-Comp_Worker -down..> DB_Redis : TCP :6379 (Filas)
+BackendPkg -down(0- DB_Postgres
+BackendPkg -down(0- DB_Redis
+Comp_Worker -down(0- DB_Redis
 
-' Backend -> APIs Externas
-Comp_Integrations -down..> Ext_BrasilApi : HTTPS (CEP)
-Comp_Integrations -down..> Ext_GoLog : HTTPS (Fretes)
-Comp_Integrations -down..> Ext_DocValidation : HTTPS (RG)
+Comp_Integrations -down(0- Ext_BrasilApi
+Comp_Integrations -down(0- Ext_GoLog
+Comp_Integrations -down(0- Ext_DocValidation
 
 @enduml
