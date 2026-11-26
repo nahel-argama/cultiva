@@ -10,200 +10,30 @@ skinparam packageFontSize 12
 skinparam packageFontStyle bold
 skinparam defaultTextAlignment left
 skinparam arrowColor #334155
+skinparam arrowFontSize 10
+skinparam arrowFontColor #334155
 skinparam classBorderColor #475569
 skinparam packageBorderColor #64748B
-skinparam linetype polyline
-skinparam nodesep 35
-skinparam ranksep 55
+skinparam linetype ortho
+skinparam nodesep 55
+skinparam ranksep 85
+skinparam padding 5
 
 hide empty members
 hide circle
 
-package "Shared / Observer" {
-    interface EventObserverInterface <<interface>> {
-        + update(event: object): void
-    }
-
-    interface EventSubjectInterface <<interface>> {
-        + attach(eventClass: string, observerClass: string): void
-        + detachAll(eventClass: string): void
-        + notify(event: object): void
-    }
-
-    class LaravelEventSubject <<Observer Subject>> implements EventSubjectInterface {
-        + attach(eventClass: string, observerClass: string): void
-        + detachAll(eventClass: string): void
-        + notify(event: object): void
-    }
-
-    class AppServiceProvider <<ServiceProvider>> {
-        + register(): void
-        + boot(eventSubject: EventSubjectInterface): void
-    }
-
-    class Cep <<Value Object>> {
-        - value: string
-        --
-        + __construct(value: string)
-        + value(): string
-        + format(): string
-    }
-}
-
-package "Integrations" {
-    package "Geo" {
-        interface GeoProviderContract <<interface>> {
-            + searchByCep(cep: Cep): GeoAddressDTO
-        }
-
-        class BrasilApiGeoProvider implements GeoProviderContract {
-            + searchByCep(cep: Cep): GeoAddressDTO
-        }
-
-        abstract class GeoProviderFactoryMethod <<Factory Method>> {
-            + searchByCep(cep: Cep): GeoAddressDTO
-            # {abstract} createProvider(): GeoProviderContract
-        }
-
-        class BrasilApiGeoProviderFactoryMethod extends GeoProviderFactoryMethod {
-            # createProvider(): GeoProviderContract
-        }
-
-        class ResolveGeoProviderAction <<Factory Action>> {
-            + execute(): GeoProviderFactoryMethod
-        }
-
-        class SearchCepAction <<Action>> {
-            + execute(cep: Cep): GeoAddressDTO
-        }
-    }
-
-    package "ProductSource" {
-        class ProductSourceClient <<HTTP Client>> {
-            + getProduct(sourceProductId: string): Response
-        }
-
-        class GetProductAction <<Action>> {
-            + execute(sourceProductId: string): ProductDTO
-        }
-    }
-
-    package "DocumentValidation" {
-        class GeminiDocumentClient <<AI Client>> {
-            + validateRg(base64Content: string, mimeType: string): array
-        }
-
-        class ValidateRgDocumentAction <<Action>> {
-            + execute(base64Content: string, mimeType: string): DocumentValidationResultDTO
-        }
-    }
-
-    package "ProductImage" {
-        class ProductImageClient <<HTTP Client>> {
-            + searchAndDownload(query: string): ?string
-        }
-    }
-
-    package "GoLog" {
-        enum GoLogOperationType <<enum>>
-        enum GoLogShipmentStatus <<enum>>
-        enum GoLogWebhookEventType <<enum>>
-        enum GoLogTransportType <<enum>>
-        enum GoLogVehicleType <<enum>>
-
-        class GoLogClient <<HTTP Client>> {
-            + getAuthSession(): GoLogAuthResponseDTO
-            + getToken(): string
-            + getCompanyId(): string
-            + login(): GoLogAuthResponseDTO
-            + getTransportTypes(): array
-            + createTransportType(name: string, description: string, care: string): GoLogTransportTypeResponseDTO
-            + createUser(name, email, password, cpf, profile): GoLogUserResponseDTO
-            + createDriver(userId, cnhNumber, cnhExpiration, costPerHour): GoLogDriverResponseDTO
-            + createTractor(plate, renavam, model, ..., ?kmPerLiter): GoLogTractorResponseDTO
-            + listEquipamentGroups(): array
-            + createEquipamentGroup(equipament1Id: string, ?observation: string = null): GoLogEquipamentGroupResponseDTO
-            + createWorkSchedule(driverId, equipamentGroupId, scheduleDate, ...): GoLogWorkScheduleResponseDTO
-            + listActiveWorkSchedules(): array
-            + importInvoicesJson(invoices: array): GoLogInvoiceImportResponseDTO
-            + optimizeRoutes(shipmentIds, workScheduleIds, routePriority): GoLogOptimizeRoutesResponseDTO
-            + configureWebhook(webhookUrl: string, webhookSecret: string, webhookActive: bool = true): void
-            + testWebhook(): GoLogWebhookTestResponseDTO
-            + listShipmentsByStatus(status: GoLogShipmentStatus): array
-            + getShipment(shipmentId: string): GoLogShipmentStatusResponseDTO
-        }
-
-        class CreateGoLogUserAction <<Action>> {
-            + execute(dto: CreateGoLogUserDTO): ProfileResultDTO
-        }
-
-        class CreateGoLogDriverAction <<Action>> {
-            + execute(driver: GoLogDriver, dto: CreateGoLogDriverDTO): GoLogDriver
-        }
-
-        class CreateGoLogVehicleAction <<Action>> {
-            + execute(driver: GoLogDriver, dto: CreateGoLogVehicleDTO): GoLogDriver
-        }
-
-        class CreateGoLogEquipamentGroupAction <<Action>> {
-            + execute(driver: GoLogDriver, dto: CreateGoLogEquipamentGroupDTO): GoLogDriver
-        }
-
-        class CreateGoLogWorkScheduleAction <<Action>> {
-            + execute(driver: GoLogDriver, dto: CreateGoLogWorkScheduleDTO): GoLogDriver
-        }
-
-        class DispatchDeliveryOrdersBatchAction <<Action / CLI>> {
-            + execute(): DispatchBatchResultDTO
-        }
-
-        class OptimizeDeliveryRoutesAction <<Action / CLI>> {
-            + execute(): OptimizeRoutesResultDTO
-        }
-
-        class ResolveAvailableWorkSchedulesAction <<Action>> {
-            + execute(): AvailableWorkSchedulesDTO
-        }
-
-        class ResolveTransportTypeAction <<Action>> {
-            + execute(category: CategoryEnum): GoLogTransportType
-        }
-
-        class PopulateTransportTypesAction <<Action / CLI>> {
-            + execute(): array
-        }
-
-        class ReceiveGoLogWebhookAction <<Action>> {
-            + execute(deliveryId: string, eventType: GoLogWebhookEventType, payload: array): GoLogWebhookEvent
-        }
-
-        class HandleGoLogWebhookAction <<Action>> {
-            + execute(event: GoLogWebhookEvent): void
-        }
-
-        class SyncGoLogShipmentStatusAction <<Action>> {
-            + execute(shipment: GoLogShipment, nextStatus: GoLogShipmentStatus, ...): bool
-        }
-
-        class ReconcileGoLogShipmentsAction <<Action / CLI>> {
-            + execute(): int
-        }
-
-        class ConfigureGoLogWebhookAction <<Action / CLI>> {
-            + execute(url: string, ?secret: string = null, active: bool = true, sendTest: bool = false): ?GoLogWebhookTestResponseDTO
-        }
-    }
-}
-
+' ============================================================================
+' AUTH & REGISTRATION
+' ============================================================================
 package "Auth & Registration" {
     enum DocumentValidationStatus <<enum>>
 
-    class SignUpFacade <<Facade>> {
-        + register(dto: SignUpDTO): ProfileResultDTO
-    }
-
     class SignUpAction <<Action>> {
         + execute(dto: SignUpDTO): ProfileResultDTO
+    }
+
+    class SignUpFacade <<Facade>> {
+        + register(dto: SignUpDTO): ProfileResultDTO
     }
 
     class LoginAction <<Action>> {
@@ -283,6 +113,9 @@ package "Auth & Registration" {
     }
 }
 
+' ============================================================================
+' IDENTITY & PROFILES
+' ============================================================================
 package "Identity & Profiles" {
     enum ProfileType <<enum>>
     enum ActivitySegment <<enum>>
@@ -365,6 +198,88 @@ package "Identity & Profiles" {
     }
 }
 
+' ============================================================================
+' SHARED :: VALUE OBJECTS & OBSERVER INFRASTRUCTURE
+' ============================================================================
+package "Shared :: Value Objects" {
+    class Cep <<Value Object>> {
+        - value: string
+        --
+        + __construct(value: string)
+        + value(): string
+        + format(): string
+    }
+}
+
+package "Shared :: Observer" {
+    interface EventObserverInterface <<interface>> {
+        + update(event: object): void
+    }
+
+    interface EventSubjectInterface <<interface>> {
+        + attach(eventClass: string, observerClass: string): void
+        + detachAll(eventClass: string): void
+        + notify(event: object): void
+    }
+
+    class LaravelEventSubject <<Observer Subject>> implements EventSubjectInterface {
+        + attach(eventClass: string, observerClass: string): void
+        + detachAll(eventClass: string): void
+        + notify(event: object): void
+    }
+
+    class AppServiceProvider <<ServiceProvider>> {
+        + register(): void
+        + boot(eventSubject: EventSubjectInterface): void
+    }
+}
+
+' ============================================================================
+' INTEGRATION :: DOCUMENT VALIDATION
+' ============================================================================
+package "Integration :: DocumentValidation" {
+    class GeminiDocumentClient <<AI Client>> {
+        + validateRg(base64Content: string, mimeType: string): array
+    }
+
+    class ValidateRgDocumentAction <<Action>> {
+        + execute(base64Content: string, mimeType: string): DocumentValidationResultDTO
+    }
+}
+
+' ============================================================================
+' INTEGRATION :: GEO
+' ============================================================================
+package "Integration :: Geo" {
+    interface GeoProviderContract <<interface>> {
+        + searchByCep(cep: Cep): GeoAddressDTO
+    }
+
+    class BrasilApiGeoProvider implements GeoProviderContract {
+        + searchByCep(cep: Cep): GeoAddressDTO
+    }
+
+    abstract class GeoProviderFactoryMethod <<Factory Method>> {
+        + searchByCep(cep: Cep): GeoAddressDTO
+        # {abstract} createProvider(): GeoProviderContract
+    }
+
+    class BrasilApiGeoProviderFactoryMethod extends GeoProviderFactoryMethod {
+        # createProvider(): GeoProviderContract
+    }
+
+    class ResolveGeoProviderAction <<Factory Action>> {
+        + execute(): GeoProviderFactoryMethod
+    }
+
+    class SearchCepAction <<Action>> {
+        + execute(cep: Cep): GeoAddressDTO
+    }
+}
+
+' ============================================================================
+' LOGISTICS & FLEET
+' ============================================================================
 package "Logistics & Fleet" {
     enum CnhCategory <<enum>>
     enum "CargoType" as CargoTypeEnum <<enum>>
@@ -417,61 +332,10 @@ package "Logistics & Fleet" {
     }
 }
 
-package "Commerce & Wishlist" {
-    class Purchase <<Entity>> {
-        - id: int
-        - offer_id: int
-        - retailer_id: int
-        - producer_id: int
-        - source_product_id: string
-        - product_name: string
-        - quantity: int
-        - unit_price: decimal
-        - total_price: decimal
-    }
-
-    class WishlistItem <<Entity>> {
-        - id: int
-        - retailer_id: int
-        - source_product_id: string
-        - product_name: string
-        - state: string
-    }
-
-    class PurchaseCreated <<Event>> {
-        + purchase: Purchase
-    }
-
-    class CreatePurchaseAction <<Action>> {
-        + execute(retailer: Retailer, offerId: int, data: CreatePurchaseDTO): Purchase
-    }
-
-    class ListRetailerPurchasesAction <<Action>> {
-        + execute(retailer: Retailer, page: int, perPage: int, ?search: string = null): LengthAwarePaginator
-    }
-
-    class ListProducerSalesAction <<Action>> {
-        + execute(producer: Producer, page: int, perPage: int, ?search: string = null): LengthAwarePaginator
-    }
-
-    class AddWishlistItemAction <<Action>> {
-        + execute(retailer: Retailer, dto: AddWishlistItemDTO): WishlistItem
-    }
-
-    class ListWishlistItemsAction <<Action>> {
-        + execute(retailer: Retailer, dto: ListWishlistItemsDTO): LengthAwarePaginator
-    }
-
-    class RemoveWishlistItemAction <<Action>> {
-        + execute(retailer: Retailer, wishlistItemId: int): void
-    }
-
-    class GetWishlistAnalyticsAction <<Action>> {
-        + execute(user: User, dto: GetWishlistAnalyticsDTO): WishlistAnalyticsDTO
-    }
-}
-
-package "Catalog & Marketplace" {
+' ============================================================================
+' CATALOG & OFFERS
+' ============================================================================
+package "Catalog & Offers" {
     enum OfferStatus <<enum>>
     enum "Category" as CategoryEnum <<enum>>
 
@@ -496,16 +360,6 @@ package "Catalog & Marketplace" {
         --
         + availableQuantity(): int
         + isVisible(): bool
-    }
-
-    class HarvestForecast <<Entity>> {
-        - id: int
-        - producer_id: int
-        - source_product_id: string
-        - product_name: string
-        - quantity: int
-        - start_date: Date
-        - end_date: Date
     }
 
     class CreateOfferAction <<Action>> {
@@ -547,6 +401,21 @@ package "Catalog & Marketplace" {
     class PopulateProductImageAction <<Action / CLI>> {
         + execute(sourceProductId: string, ?productName: string = null): string
     }
+}
+
+' ============================================================================
+' HARVEST FORECASTS
+' ============================================================================
+package "Harvest Forecasts" {
+    class HarvestForecast <<Entity>> {
+        - id: int
+        - producer_id: int
+        - source_product_id: string
+        - product_name: string
+        - quantity: int
+        - start_date: Date
+        - end_date: Date
+    }
 
     class CreateHarvestForecastAction <<Action>> {
         + execute(producer: Producer, data: CreateHarvestForecastDTO): HarvestForecast
@@ -569,6 +438,88 @@ package "Catalog & Marketplace" {
     }
 }
 
+' ============================================================================
+' INTEGRATION :: PRODUCT SOURCE & IMAGE
+' ============================================================================
+package "Integration :: ProductSource & Image" {
+    class ProductSourceClient <<HTTP Client>> {
+        + getProduct(sourceProductId: string): Response
+    }
+
+    class GetProductAction <<Action>> {
+        + execute(sourceProductId: string): ProductDTO
+    }
+
+    class ProductImageClient <<HTTP Client>> {
+        + searchAndDownload(query: string): ?string
+    }
+}
+
+' ============================================================================
+' COMMERCE
+' ============================================================================
+package "Commerce" {
+    class Purchase <<Entity>> {
+        - id: int
+        - offer_id: int
+        - retailer_id: int
+        - producer_id: int
+        - source_product_id: string
+        - product_name: string
+        - quantity: int
+        - unit_price: decimal
+        - total_price: decimal
+    }
+
+    class PurchaseCreated <<Event>> {
+        + purchase: Purchase
+    }
+
+    class CreatePurchaseAction <<Action>> {
+        + execute(retailer: Retailer, offerId: int, data: CreatePurchaseDTO): Purchase
+    }
+
+    class ListRetailerPurchasesAction <<Action>> {
+        + execute(retailer: Retailer, page: int, perPage: int, ?search: string = null): LengthAwarePaginator
+    }
+
+    class ListProducerSalesAction <<Action>> {
+        + execute(producer: Producer, page: int, perPage: int, ?search: string = null): LengthAwarePaginator
+    }
+}
+
+' ============================================================================
+' WISHLIST
+' ============================================================================
+package "Wishlist" {
+    class WishlistItem <<Entity>> {
+        - id: int
+        - retailer_id: int
+        - source_product_id: string
+        - product_name: string
+        - state: string
+    }
+
+    class AddWishlistItemAction <<Action>> {
+        + execute(retailer: Retailer, dto: AddWishlistItemDTO): WishlistItem
+    }
+
+    class ListWishlistItemsAction <<Action>> {
+        + execute(retailer: Retailer, dto: ListWishlistItemsDTO): LengthAwarePaginator
+    }
+
+    class RemoveWishlistItemAction <<Action>> {
+        + execute(retailer: Retailer, wishlistItemId: int): void
+    }
+
+    class GetWishlistAnalyticsAction <<Action>> {
+        + execute(user: User, dto: GetWishlistAnalyticsDTO): WishlistAnalyticsDTO
+    }
+}
+
+' ============================================================================
+' DELIVERY & FULFILLMENT
+' ============================================================================
 package "Delivery & Fulfillment" {
     enum DeliveryTripStatus <<enum>>
     enum DeliveryTripStopStatus <<enum>>
@@ -682,54 +633,151 @@ package "Delivery & Fulfillment" {
     }
 }
 
-' Observer & Shared Infrastructure wirings
-AppServiceProvider ..> EventSubjectInterface : binds & boots
+' ============================================================================
+' INTEGRATION :: GOLOG ONBOARDING
+' ============================================================================
+package "Integration :: GoLog Onboarding" {
+    enum GoLogVehicleType <<enum>>
+
+    class CreateGoLogUserAction <<Action>> {
+        + execute(dto: CreateGoLogUserDTO): ProfileResultDTO
+    }
+
+    class CreateGoLogDriverAction <<Action>> {
+        + execute(driver: GoLogDriver, dto: CreateGoLogDriverDTO): GoLogDriver
+    }
+
+    class CreateGoLogVehicleAction <<Action>> {
+        + execute(driver: GoLogDriver, dto: CreateGoLogVehicleDTO): GoLogDriver
+    }
+
+    class CreateGoLogEquipamentGroupAction <<Action>> {
+        + execute(driver: GoLogDriver, dto: CreateGoLogEquipamentGroupDTO): GoLogDriver
+    }
+
+    class CreateGoLogWorkScheduleAction <<Action>> {
+        + execute(driver: GoLogDriver, dto: CreateGoLogWorkScheduleDTO): GoLogDriver
+    }
+}
+
+' ============================================================================
+' INTEGRATION :: GOLOG OPERATIONS
+' ============================================================================
+package "Integration :: GoLog Operations" {
+    enum GoLogOperationType <<enum>>
+    enum GoLogShipmentStatus <<enum>>
+    enum GoLogWebhookEventType <<enum>>
+    enum GoLogTransportType <<enum>>
+
+    class GoLogClient <<HTTP Client>> {
+        + getAuthSession(): GoLogAuthResponseDTO
+        + getToken(): string
+        + getCompanyId(): string
+        + login(): GoLogAuthResponseDTO
+        + getTransportTypes(): array
+        + createTransportType(name: string, description: string, care: string): GoLogTransportTypeResponseDTO
+        + createUser(name, email, password, cpf, profile): GoLogUserResponseDTO
+        + createDriver(userId, cnhNumber, cnhExpiration, costPerHour): GoLogDriverResponseDTO
+        + createTractor(plate, renavam, model, ..., ?kmPerLiter): GoLogTractorResponseDTO
+        + listEquipamentGroups(): array
+        + createEquipamentGroup(equipament1Id: string, ?observation: string = null): GoLogEquipamentGroupResponseDTO
+        + createWorkSchedule(driverId, equipamentGroupId, scheduleDate, ...): GoLogWorkScheduleResponseDTO
+        + listActiveWorkSchedules(): array
+        + importInvoicesJson(invoices: array): GoLogInvoiceImportResponseDTO
+        + optimizeRoutes(shipmentIds, workScheduleIds, routePriority): GoLogOptimizeRoutesResponseDTO
+        + configureWebhook(webhookUrl: string, webhookSecret: string, webhookActive: bool = true): void
+        + testWebhook(): GoLogWebhookTestResponseDTO
+        + listShipmentsByStatus(status: GoLogShipmentStatus): array
+        + getShipment(shipmentId: string): GoLogShipmentStatusResponseDTO
+    }
+
+    class DispatchDeliveryOrdersBatchAction <<Action / CLI>> {
+        + execute(): DispatchBatchResultDTO
+    }
+
+    class OptimizeDeliveryRoutesAction <<Action / CLI>> {
+        + execute(): OptimizeRoutesResultDTO
+    }
+
+    class ResolveAvailableWorkSchedulesAction <<Action>> {
+        + execute(): AvailableWorkSchedulesDTO
+    }
+
+    class ResolveTransportTypeAction <<Action>> {
+        + execute(category: CategoryEnum): GoLogTransportType
+    }
+
+    class PopulateTransportTypesAction <<Action / CLI>> {
+        + execute(): array
+    }
+
+    class ReceiveGoLogWebhookAction <<Action>> {
+        + execute(deliveryId: string, eventType: GoLogWebhookEventType, payload: array): GoLogWebhookEvent
+    }
+
+    class HandleGoLogWebhookAction <<Action>> {
+        + execute(event: GoLogWebhookEvent): void
+    }
+
+    class SyncGoLogShipmentStatusAction <<Action>> {
+        + execute(shipment: GoLogShipment, nextStatus: GoLogShipmentStatus, ...): bool
+    }
+
+    class ReconcileGoLogShipmentsAction <<Action / CLI>> {
+        + execute(): int
+    }
+
+    class ConfigureGoLogWebhookAction <<Action / CLI>> {
+        + execute(url: string, ?secret: string = null, active: bool = true, sendTest: bool = false): ?GoLogWebhookTestResponseDTO
+    }
+}
+
+' ============================================================================
+' RELATIONSHIPS & WIRINGS
+' ============================================================================
+
+' Observer Infrastructure
+AppServiceProvider ..> EventSubjectInterface : binds
 AppServiceProvider ..> LaravelEventSubject : binds
 AppServiceProvider ..> PurchaseCreated : attaches
 AppServiceProvider ..> CreateDeliveryOrderListener : attaches
 CreateDeliveryOrderListener ..|> EventObserverInterface
 
-' Integration & Factory Method wirings
+' Geo & Value Objects
 BrasilApiGeoProviderFactoryMethod ..> BrasilApiGeoProvider : creates
 ResolveGeoProviderAction ..> GeoProviderFactoryMethod : resolves
-ResolveGeoProviderAction ..> BrasilApiGeoProviderFactoryMethod : instantiates
-SearchCepAction ..> ResolveGeoProviderAction : resolves via
-SearchCepAction ..> GeoProviderFactoryMethod : calls searchByCep()
+ResolveGeoProviderAction ..> BrasilApiGeoProviderFactoryMethod : creates
+SearchCepAction ..> ResolveGeoProviderAction : uses
+SearchCepAction ..> GeoProviderFactoryMethod : calls
 SearchCepAction ..> Cep : accepts
 GeoProviderContract ..> Cep : accepts
-GetProductAction o-- ProductSourceClient : calls
-ValidateRgDocumentAction o-- GeminiDocumentClient : calls
-PopulateProductImageAction o-- ProductImageClient : downloads via
-PopulateProductImageAction ..> GetProductAction : fetches name via
 
-' Registration & Auth wirings
+' DocumentValidation & ProductSource / ProductImage
+ValidateRgDocumentAction o-- GeminiDocumentClient : calls
+GetProductAction o-- ProductSourceClient : calls
+PopulateProductImageAction o-- ProductImageClient : calls
+PopulateProductImageAction ..> GetProductAction : resolves
+
+' Auth & Registration
 SignUpAction ..> SignUpFacade : delegates
 SignUpFacade ..> Cep : validates
-SignUpFacade ..> SearchCepAction : resolves geo via
+SignUpFacade ..> SearchCepAction : resolves geo
 SignUpFacade ..> CreateUserAction : delegates
 SignUpFacade ..> CreateCompanyAction : delegates
 SignUpFacade ..> SignupStrategyFactory : uses
 SignUpFacade ..> GenerateTokenPairAction : delegates
 CreateCompanyAction ..> CreateAddressAction : delegates
 
-LoginAction ..> User : authenticates
 LoginAction ..> GenerateTokenPairAction : delegates
-GenerateTokenPairAction ..> User : issues tokens
+LoginAction ..> User : authenticates
+GenerateTokenPairAction ..> User : tokens
 GetAuthenticatedProfileAction ..> User : wraps
-GetSignupMetadataAction ..> ProfileType : reads options
-GetSignupMetadataAction ..> ActivitySegment : reads options
-GetSignupMetadataAction ..> BusinessType : reads options
-GetSignupMetadataAction ..> CnhCategory : reads options
-GetSignupMetadataAction ..> CargoTypeEnum : reads options
 
-UploadDocumentAction ..> User : checks verified
-UploadDocumentAction ..> DocumentValidationStatus : caches PENDING
+UploadDocumentAction ..> DocumentValidationStatus : caches
 UploadDocumentAction ..> VerifyUserDocumentAction : <<async>>
-GetDocumentValidationStatusAction ..> User : reads cache for
-GetDocumentValidationStatusAction ..> DocumentValidationStatus : returns status
-VerifyUserDocumentAction ..> ValidateRgDocumentAction : validates via
-VerifyUserDocumentAction ..> User : marks verified
-VerifyUserDocumentAction ..> DocumentValidationStatus : caches result
+GetDocumentValidationStatusAction ..> DocumentValidationStatus : reads
+VerifyUserDocumentAction ..> ValidateRgDocumentAction : validates
+VerifyUserDocumentAction ..> User : verifies
 
 SignupStrategyFactory ..> SignupStrategyInterface : makes
 ProducerSignupStrategy ..> CreateProducerAction : delegates
@@ -741,10 +789,10 @@ ProducerSignupDirector o-- SignupRuleBuilderInterface : directs
 RetailerSignupDirector o-- SignupRuleBuilderInterface : directs
 DeliverySignupDirector o-- SignupRuleBuilderInterface : directs
 
-' Domain Model Associations & Cardinalities
+' Identity & Profiles Domain Model
 User "1" *--down- "1" Company : owns
 Company "1" *-- "1" Address : located at
-User ..> ProfileType : classified by
+User ..> ProfileType
 
 Company "1" *-- "0..1" Producer : profile
 Company "1" *-- "0..1" Retailer : profile
@@ -754,27 +802,68 @@ Company "1" *-- "0..1" GoLogDriver : profile
 Producer ..> ActivitySegment
 Retailer ..> BusinessType
 
+' Logistics & Fleet Domain Model
 Delivery ..> CnhCategory
 Delivery "1" *-- "1..*" Vehicle : operates
 Vehicle "0..*" --> "1" CargoType : classified by
-CargoType ..> CargoTypeEnum : typed by
+CargoType ..> CargoTypeEnum
 GoLogDriver "1" *-- "0..1" GoLogVehicle : provisions
-GoLogDriver ..> GoLogDriverStep : tracks step
+GoLogDriver ..> GoLogDriverStep
+CreateVehicleAction ..> CargoType : resolves
+CreateVehicleAction ..> Vehicle : creates
 
-Category ..> CategoryEnum : typed by
+' Catalog, Offers & Harvest Forecasts
+Category ..> CategoryEnum
 Category "1" o-- "0..*" Offer : classifies
 Producer "1" o-- "0..*" Offer : publishes
 Producer "1" o-- "0..*" HarvestForecast : forecasts
 Offer ..> OfferStatus
 
+CreateOfferAction ..> GetProductAction : fetches
+CreateOfferAction ..> Offer : creates
+CreateOfferAction ..> Category : validates
+UpdateOfferAction ..> Offer : updates
+UpdateOfferAction ..> Category : validates
+ListOffersAction ..> ListProducerOffersAction : delegates
+ListOffersAction ..> ListAvailableOffersAction : delegates
+GetOfferAction ..> GetProducerOfferAction : delegates
+GetOfferAction ..> GetAvailableOfferAction : delegates
+ListProducerOffersAction ..> Offer : queries
+ListAvailableOffersAction ..> Offer : queries
+GetProducerOfferAction ..> Offer : queries
+GetAvailableOfferAction ..> Offer : queries
+ListCategoriesAction ..> Category : queries
+
+CreateHarvestForecastAction ..> GetProductAction : fetches
+CreateHarvestForecastAction ..> HarvestForecast : creates
+UpdateHarvestForecastAction ..> GetProductAction : fetches
+UpdateHarvestForecastAction ..> HarvestForecast : updates
+DeleteHarvestForecastAction ..> HarvestForecast : deletes
+ListHarvestForecastsAction ..> HarvestForecast : queries
+ListHarvestSeasonPeriodsAction ..> GetProductAction : fetches
+
+' Commerce & Wishlist
 Offer "1" <-- "0..*" Purchase : fulfills
 Retailer "1" <-- "0..*" Purchase : places
-Producer "1" <-- "0..*" Purchase : fulfills for
-
+Producer "1" <-- "0..*" Purchase : sells
 Retailer "1" *-- "0..*" WishlistItem : tracks
 
-' Delivery, Fulfillment & GoLog Associations
-DeliveryTrip ..> DeliveryTripStatus
+CreatePurchaseAction ..> Offer : locks
+CreatePurchaseAction ..> Purchase : creates
+CreatePurchaseAction ..> EventSubjectInterface : notifies
+CreatePurchaseAction ..> PurchaseCreated : emits
+ListRetailerPurchasesAction ..> Purchase : queries
+ListProducerSalesAction ..> Purchase : queries
+
+AddWishlistItemAction ..> GetProductAction : verifies
+AddWishlistItemAction ..> WishlistItem : creates
+AddWishlistItemAction ..> PopulateProductImageAction : <<async>>
+ListWishlistItemsAction ..> WishlistItem : queries
+RemoveWishlistItemAction ..> WishlistItem : deletes
+GetWishlistAnalyticsAction ..> WishlistItem : aggregates
+
+' Delivery & Fulfillment
+DeliveryTrip ..left.> DeliveryTripStatus
 DeliveryTripStop ..> DeliveryTripStopStatus
 DeliveryTripStop ..> DeliveryTripStopType
 DeliveryOrder ..> DeliveryOrderStatus
@@ -782,7 +871,7 @@ DeliveryOrder ..> DeliveryOrderStatus
 Purchase "1" *-- "0..1" DeliveryOrder : generates
 DeliveryTrip "1" *-- "1..*" DeliveryTripStop : contains
 DeliveryTrip "1" *-- "0..*" DeliveryOrder : consolidates
-DeliveryTrip "0..*" --> "0..1" Delivery : assigned to
+DeliveryTrip "0..*" -right-> "0..1" Delivery : assigned to
 DeliveryTrip "0..*" --> "0..1" Vehicle : uses
 DeliveryTrip "0..*" --> "1" CargoType : requires
 
@@ -793,49 +882,6 @@ DeliveryOrder "1" *-- "0..2" GoLogShipment : dispatches
 GoLogShipment ..> GoLogOperationType
 GoLogShipment ..> GoLogShipmentStatus
 GoLogWebhookEvent ..> GoLogWebhookEventType
-
-' Catalog, HarvestForecast, Commerce & Wishlist Action Interactions
-CreateOfferAction ..> GetProductAction : fetches product via
-CreateOfferAction ..> Offer : creates
-CreateOfferAction ..> Producer : validates
-CreateOfferAction ..> Category : validates
-UpdateOfferAction ..> Offer : updates
-UpdateOfferAction ..> Category : validates
-ListOffersAction ..> ListProducerOffersAction : delegates (producer)
-ListOffersAction ..> ListAvailableOffersAction : delegates (retailer)
-GetOfferAction ..> GetProducerOfferAction : delegates (producer)
-GetOfferAction ..> GetAvailableOfferAction : delegates (retailer)
-ListProducerOffersAction ..> Offer : queries
-ListAvailableOffersAction ..> Offer : queries
-GetProducerOfferAction ..> Offer : queries
-GetAvailableOfferAction ..> Offer : queries
-ListCategoriesAction ..> Category : queries
-
-CreateHarvestForecastAction ..> GetProductAction : fetches product via
-CreateHarvestForecastAction ..> HarvestForecast : creates
-UpdateHarvestForecastAction ..> GetProductAction : fetches product via
-UpdateHarvestForecastAction ..> HarvestForecast : updates
-DeleteHarvestForecastAction ..> HarvestForecast : deletes
-ListHarvestForecastsAction ..> HarvestForecast : queries
-ListHarvestSeasonPeriodsAction ..> GetProductAction : fetches product via
-
-CreatePurchaseAction ..> Offer : locks & reserves
-CreatePurchaseAction ..> Purchase : creates
-CreatePurchaseAction ..> EventSubjectInterface : notifies via
-CreatePurchaseAction ..> PurchaseCreated : emits
-ListRetailerPurchasesAction ..> Purchase : queries
-ListProducerSalesAction ..> Purchase : queries
-
-AddWishlistItemAction ..> GetProductAction : verifies product via
-AddWishlistItemAction ..> WishlistItem : creates
-AddWishlistItemAction ..> PopulateProductImageAction : <<async>>
-ListWishlistItemsAction ..> WishlistItem : queries
-RemoveWishlistItemAction ..> WishlistItem : deletes
-GetWishlistAnalyticsAction ..> WishlistItem : aggregates
-
-' Vehicle, DeliveryOrder & DeliveryTrip Action Interactions
-CreateVehicleAction ..> CargoType : resolves
-CreateVehicleAction ..> Vehicle : creates
 
 CreateDeliveryOrderListener ..> PurchaseCreated : handles
 CreateDeliveryOrderListener ..> CreateDeliveryOrderAction : delegates
@@ -852,129 +898,94 @@ GetCurrentTripAction ..> DeliveryTrip : fetches
 ListAvailableTripsAction ..> DeliveryTrip : queries
 ListFinishedTripsAction ..> DeliveryTrip : queries
 
-' GoLog Action Interactions
+' GoLog Onboarding
 CreateGoLogUserAction ..> Cep : validates
-CreateGoLogUserAction ..> SearchCepAction : resolves geo via
+CreateGoLogUserAction ..> SearchCepAction : resolves geo
 CreateGoLogUserAction ..> CreateUserAction : delegates
 CreateGoLogUserAction ..> CreateCompanyAction : delegates
 CreateGoLogUserAction ..> GenerateTokenPairAction : delegates
-CreateGoLogUserAction ..> GoLogClient : creates user via
+CreateGoLogUserAction ..> GoLogClient : calls
 CreateGoLogUserAction ..> GoLogDriver : creates
 
-CreateGoLogDriverAction ..> GoLogClient : creates driver via
+CreateGoLogDriverAction ..> GoLogClient : calls
 CreateGoLogDriverAction ..> GoLogDriver : updates
-CreateGoLogDriverAction ..> GoLogDriverStep : checks
 
-CreateGoLogVehicleAction ..> GoLogClient : creates tractor via
+CreateGoLogVehicleAction ..> GoLogClient : calls
 CreateGoLogVehicleAction ..> GoLogDriver : validates
 CreateGoLogVehicleAction ..> GoLogVehicle : creates
-CreateGoLogVehicleAction ..> GoLogVehicleType : checks isRigid()
+CreateGoLogVehicleAction ..> GoLogVehicleType : checks
 
-CreateGoLogEquipamentGroupAction ..> GoLogClient : creates group via
+CreateGoLogEquipamentGroupAction ..> GoLogClient : calls
 CreateGoLogEquipamentGroupAction ..> GoLogVehicle : updates
-CreateGoLogEquipamentGroupAction ..> GoLogDriverStep : checks
 
-CreateGoLogWorkScheduleAction ..> GoLogClient : creates schedule via
-CreateGoLogWorkScheduleAction ..> GoLogDriver : checks provisioned
+CreateGoLogWorkScheduleAction ..> GoLogClient : calls
+CreateGoLogWorkScheduleAction ..> GoLogDriver : checks
 
-ResolveAvailableWorkSchedulesAction ..> GoLogClient : lists active
-ResolveAvailableWorkSchedulesAction ..> GoLogDriver : queries provisioned
+' GoLog Operations & Webhooks
+ResolveAvailableWorkSchedulesAction ..> GoLogClient : calls
+ResolveAvailableWorkSchedulesAction ..> GoLogDriver : queries
 ResolveTransportTypeAction ..> CategoryEnum : maps
 ResolveTransportTypeAction ..> GoLogTransportType : returns
-PopulateTransportTypesAction ..> GoLogClient : syncs
-PopulateTransportTypesAction ..> GoLogTransportType : iterates
+PopulateTransportTypesAction ..> GoLogClient : calls
+PopulateTransportTypesAction ..> GoLogTransportType : syncs
 
-DispatchDeliveryOrdersBatchAction ..> DeliveryOrder : queries pending
+DispatchDeliveryOrdersBatchAction ..> DeliveryOrder : queries
 DispatchDeliveryOrdersBatchAction ..> ResolveAvailableWorkSchedulesAction : resolves date
-DispatchDeliveryOrdersBatchAction ..> ResolveTransportTypeAction : resolves transport
-DispatchDeliveryOrdersBatchAction ..> GoLogClient : imports batch
-DispatchDeliveryOrdersBatchAction ..> GoLogShipment : creates COLETA/ENTREGA
+DispatchDeliveryOrdersBatchAction ..> ResolveTransportTypeAction : resolves type
+DispatchDeliveryOrdersBatchAction ..> GoLogClient : calls
+DispatchDeliveryOrdersBatchAction ..> GoLogShipment : creates
 
-OptimizeDeliveryRoutesAction ..> GoLogShipment : queries pending
-OptimizeDeliveryRoutesAction ..> ResolveAvailableWorkSchedulesAction : resolves schedules
-OptimizeDeliveryRoutesAction ..> GoLogClient : optimizes routes
-OptimizeDeliveryRoutesAction ..> SyncGoLogShipmentStatusAction : marks planned
+OptimizeDeliveryRoutesAction ..> GoLogShipment : queries
+OptimizeDeliveryRoutesAction ..> ResolveAvailableWorkSchedulesAction : resolves
+OptimizeDeliveryRoutesAction ..> GoLogClient : calls
+OptimizeDeliveryRoutesAction ..> SyncGoLogShipmentStatusAction : syncs
 
 ReceiveGoLogWebhookAction ..> GoLogWebhookEvent : stores
 ReceiveGoLogWebhookAction ..> HandleGoLogWebhookAction : <<async>>
-HandleGoLogWebhookAction ..> GoLogWebhookEvent : marks processed
+HandleGoLogWebhookAction ..> GoLogWebhookEvent : updates
 HandleGoLogWebhookAction ..> GoLogShipment : resolves
 HandleGoLogWebhookAction ..> SyncGoLogShipmentStatusAction : delegates
 
-SyncGoLogShipmentStatusAction ..> GoLogShipment : locks & updates
+SyncGoLogShipmentStatusAction ..> GoLogShipment : updates
 SyncGoLogShipmentStatusAction ..> DeliveryOrder : transitions
 
-ReconcileGoLogShipmentsAction ..> GoLogClient : fetches remote
-ReconcileGoLogShipmentsAction ..> GoLogShipment : queries active
+ReconcileGoLogShipmentsAction ..> GoLogClient : calls
+ReconcileGoLogShipmentsAction ..> GoLogShipment : queries
 ReconcileGoLogShipmentsAction ..> SyncGoLogShipmentStatusAction : syncs
 
-ConfigureGoLogWebhookAction ..> GoLogClient : configures & tests
+ConfigureGoLogWebhookAction ..> GoLogClient : calls
 
-' Layout hints to balance width vs height inside wide packages
-' GoLog (3 compact rows of actions above GoLogClient)
-CreateGoLogUserAction -[hidden]down-> DispatchDeliveryOrdersBatchAction
-CreateGoLogDriverAction -[hidden]down-> OptimizeDeliveryRoutesAction
-CreateGoLogVehicleAction -[hidden]down-> ResolveAvailableWorkSchedulesAction
-CreateGoLogEquipamentGroupAction -[hidden]down-> ResolveTransportTypeAction
-CreateGoLogWorkScheduleAction -[hidden]down-> PopulateTransportTypesAction
+' ============================================================================
+' CLEAN LAYOUT HINTS (DAG-CONSISTENT, MINIMAL CROSSINGS)
+' ============================================================================
+' Top band ordering: DocumentValidation | Identity | Auth | Cep | Geo | GoLog Onboarding
+ValidateRgDocumentAction -[hidden]right-> VerifyUserDocumentAction
+CreateUserAction -[hidden]right-> SignUpFacade
+SignUpFacade -[hidden]right-> Cep
+Cep -[hidden]right-> SearchCepAction
+SearchCepAction -[hidden]right-> CreateGoLogUserAction
 
-DispatchDeliveryOrdersBatchAction -[hidden]down-> ReceiveGoLogWebhookAction
-OptimizeDeliveryRoutesAction -[hidden]down-> HandleGoLogWebhookAction
-ResolveAvailableWorkSchedulesAction -[hidden]down-> SyncGoLogShipmentStatusAction
-ResolveTransportTypeAction -[hidden]down-> ReconcileGoLogShipmentsAction
-PopulateTransportTypesAction -[hidden]down-> ConfigureGoLogWebhookAction
+' Keep GoLog entities neatly grouped at the bottom of Delivery & Fulfillment
+DeliveryOrder -[hidden]down-> GoLogShipment
+DeliveryAddress -[hidden]right-> GoLogShipment
+GoLogShipment -[hidden]right-> GoLogWebhookEvent
 
-ReceiveGoLogWebhookAction -[hidden]down-> GoLogClient
-HandleGoLogWebhookAction -[hidden]down-> GoLogClient
-
-' Auth & Identity compact stacking
-SignUpAction -[hidden]down-> UploadDocumentAction
-LoginAction -[hidden]down-> GetDocumentValidationStatusAction
-GetAuthenticatedProfileAction -[hidden]down-> GetSignupMetadataAction
-
-CreateUserAction -[hidden]down-> CreateProducerAction
-CreateCompanyAction -[hidden]down-> CreateRetailerAction
-CreateAddressAction -[hidden]down-> VerifyUserDocumentAction
-
-' Catalog & Marketplace (stack Offer queries -> Offer writes -> HarvestForecast)
-ListOffersAction -[hidden]down-> CreateOfferAction
-ListProducerOffersAction -[hidden]down-> UpdateOfferAction
-ListAvailableOffersAction -[hidden]down-> ListCategoriesAction
-GetOfferAction -[hidden]down-> PopulateProductImageAction
-GetProducerOfferAction -[hidden]down-> Offer
-GetAvailableOfferAction -[hidden]down-> Category
-
-CreateOfferAction -[hidden]down-> Offer
-Offer -[hidden]down-> CreateHarvestForecastAction
-Category -[hidden]down-> UpdateHarvestForecastAction
-CreateHarvestForecastAction -[hidden]down-> HarvestForecast
-ListHarvestForecastsAction -[hidden]down-> HarvestForecast
-ListHarvestSeasonPeriodsAction -[hidden]down-> HarvestForecast
-DeleteHarvestForecastAction -[hidden]down-> HarvestForecast
-
-' Commerce & Wishlist
-CreatePurchaseAction -[hidden]down-> AddWishlistItemAction
-ListRetailerPurchasesAction -[hidden]down-> ListWishlistItemsAction
-ListProducerSalesAction -[hidden]down-> RemoveWishlistItemAction
-GetWishlistAnalyticsAction -[hidden]down-> WishlistItem
-
-' Delivery & Fulfillment
+' Compact 2-row action packing for independent read/write actions
 ListAvailableTripsAction -[hidden]down-> AssignTripAction
 ListFinishedTripsAction -[hidden]down-> CancelTripAssignmentAction
 GetCurrentTripAction -[hidden]down-> ConfirmTripStopAction
-AssignTripAction -[hidden]down-> DeliveryTrip
-CancelTripAssignmentAction -[hidden]down-> DeliveryTripStop
-DeliveryOrder -[hidden]down-> GoLogShipment
-DeliveryAddress -[hidden]down-> GoLogWebhookEvent
 
-' Stack Integrations sub-packages cleanly (2x2 small providers beside GoLog) & place Integrations below domain tier
-ProductImageClient -[hidden]down-> GetProductAction
-ProductSourceClient -[hidden]down-> ValidateRgDocumentAction
-GeminiDocumentClient -[hidden]down-> SearchCepAction
+ListWishlistItemsAction -[hidden]down-> RemoveWishlistItemAction
+ListHarvestForecastsAction -[hidden]down-> DeleteHarvestForecastAction
 
+' Keep ProductSource & Image directly below Catalog / Harvest / Wishlist
 Offer -[hidden]down-> GetProductAction
+HarvestForecast -[hidden]down-> GetProductAction
 WishlistItem -[hidden]down-> ProductImageClient
-Company -[hidden]down-> Delivery
-Address -[hidden]down-> SearchCepAction
+
+' Keep Commerce -> Observer -> Delivery -> GoLog Operations in clean left-to-right flow
+PurchaseCreated -[hidden]right-> EventSubjectInterface
+EventSubjectInterface -[hidden]right-> DeliveryOrder
+DeliveryOrder -[hidden]right-> GoLogClient
 
 @enduml
